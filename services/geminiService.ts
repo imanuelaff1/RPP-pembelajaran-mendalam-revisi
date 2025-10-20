@@ -144,12 +144,19 @@ export const generateRpp = async (formData: RppFormData, apiKey: string): Promis
 
     } catch (error: any) {
         console.error("Error generating RPP with Gemini:", error);
-        if (error.message.includes('API key not valid')) {
-            throw new Error("API Key yang Anda gunakan tidak valid. Mohon periksa kembali di halaman Pengaturan.");
-        }
+
         if (error instanceof SyntaxError) {
-             throw new Error("Gagal mem-parsing respons dari AI. Coba lagi.");
+             throw new Error("Gagal mem-parsing respons dari AI. AI mungkin mengembalikan format yang tidak valid. Coba lagi.");
         }
-        throw new Error(`Gagal menghasilkan RPP: ${error.message}`);
+        
+        // Provides a comprehensive error message for API-related failures (like 500 errors).
+        const userFriendlyError = "Terjadi kesalahan saat berkomunikasi dengan AI.\n\n" +
+                                  "Penyebab umum termasuk:\n" +
+                                  "1. Kunci API tidak valid, salah ketik, atau kedaluwarsa.\n" +
+                                  "2. Masalah penagihan (billing) pada akun Google AI Anda.\n" +
+                                  "3. Masalah jaringan sementara.\n\n" +
+                                  "Mohon periksa kembali Kunci API Anda di halaman Pengaturan dan pastikan akun Google Anda memiliki penagihan yang aktif. Coba lagi setelah beberapa saat.";
+
+        throw new Error(userFriendlyError);
     }
 };
