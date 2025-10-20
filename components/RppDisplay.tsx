@@ -2,51 +2,71 @@ import React from 'react';
 import type { GeneratedRpp, RppSectionItem } from '../types';
 import Spinner from './Spinner';
 
+// Import libraries for download functionality
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import saveAs from 'file-saver';
+import jsPDF from 'jspdf';
+
 interface RppDisplayProps {
   rpp: GeneratedRpp | null;
   isLoading: boolean;
   error: string | null;
 }
 
-// A simple component to render the markdown-like format from Gemini
-const SimpleMarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
-  const parts = content.split('\n').filter(part => part.trim() !== '');
-  
-  return (
-    <div className="prose prose-sm max-w-none text-gray-700">
-      {parts.map((part, index) => {
-        const boldMatch = part.match(/^\*\*(.*)\*\*$/);
-        if (boldMatch) {
-          return <strong key={index} className="block font-semibold text-gray-800">{boldMatch[1]}</strong>;
-        }
+// Improved renderer to handle bold and numbered lists cleanly into proper HTML
+const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
+  const lines = content.split('\n').filter(line => line.trim() !== '');
+  const elements: React.ReactNode[] = [];
+  let currentListItems: string[] = [];
 
-        const listItemMatch = part.match(/^\d+\.\s(.*)$/);
-        if (listItemMatch) {
-          // This simple renderer doesn't group into <ul>/<ol>, it just indents list items.
-          return <p key={index} className="ml-4">{part}</p>;
-        }
+  const flushList = () => {
+    if (currentListItems.length > 0) {
+      elements.push(
+        <ol key={`list-${elements.length}`} className="list-decimal pl-6 space-y-1 my-2">
+          {currentListItems.map((item, idx) => <li key={idx}>{item}</li>)}
+        </ol>
+      );
+      currentListItems = [];
+    }
+  };
 
-        return <p key={index}>{part}</p>;
-      })}
-    </div>
-  );
+  lines.forEach((line) => {
+    const isBold = /^\*\*(.*)\*\*$/.test(line);
+    const cleanLine = line.replace(/\*\*/g, '');
+    const listItemMatch = cleanLine.match(/^\d+\.\s(.*)$/);
+
+    if (isBold) {
+      flushList();
+      elements.push(<p key={elements.length} className="font-semibold text-gray-800 mt-2 mb-1">{cleanLine}</p>);
+    } else if (listItemMatch) {
+      currentListItems.push(listItemMatch[1]);
+    } else {
+      flushList();
+      elements.push(<p key={elements.length}>{cleanLine}</p>);
+    }
+  });
+
+  flushList();
+
+  return <div className="prose prose-sm max-w-none text-gray-700">{elements}</div>;
 };
+
 
 const RppSection: React.FC<{ title: string; items: RppSectionItem[] | string[] }> = ({ title, items }) => {
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="mb-6 last:mb-0">
+    <div className="mb-6 last:mb-0 break-words">
       <h3 className="text-lg font-bold text-teal-700 mb-3 border-b border-teal-200 pb-2">{title}</h3>
       <div className="space-y-4">
         {items.map((item, index) => {
           if (typeof item === 'string') {
-            return <p key={index} className="text-gray-700 ml-4">{`- ${item}`}</p>; // For M_daftarRujukanInternal
+            return <p key={index} className="text-gray-700 ml-4">{`- ${item}`}</p>;
           }
           return (
             <div key={index} className="p-3 bg-gray-50 rounded-md">
               <h4 className="font-semibold text-gray-800">{item.konteks}</h4>
-              <SimpleMarkdownRenderer content={item.deskripsi} />
+              <MarkdownRenderer content={item.deskripsi} />
             </div>
           );
         })}
@@ -72,6 +92,146 @@ const SECTION_TITLES: Record<string, string> = {
 };
 
 const RppDisplay: React.FC<RppDisplayProps> = ({ rpp, isLoading, error }) => {
+
+  const handleDownloadDocx = () => {
+    if (!rpp) return;
+  
+    const formatDeskripsiForDocx = (deskripsi: string) => {
+        const paragraphs: Paragraph[] = [];
+        const lines = deskripsi.split('\n').filter(line => line.trim() !== '');
+
+        lines.forEach(line => {
+            const isBold = /^\*\*(.*)\*\*$/.test(line);
+            const cleanLine = line.replace(/\*\*/g, '');
+            const listItemMatch = cleanLine.match(/^\d+\.\s(.*)$/);
+
+            if (listItemMatch) {
+                paragraphs.push(new Paragraph({
+                    text: listItemMatch[1],
+                    numbering: { reference: "default-numbering", level: 0 },
+                    style: "ListParagraph",
+                }));
+            } else {
+                paragraphs.push(new Paragraph({
+                    children: [new TextRun({ text: cleanLine, bold: isBold })],
+                    spacing: { after: 100 },
+                }));
+            }
+        });
+        return paragraphs;
+    };
+
+    const children = Object.entries(rpp).flatMap(([key, value]) => {
+      const sectionContent: Paragraph[] = [
+        new Paragraph({ text: SECTION_TITLES[key] || key, heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 200 } }),
+      ];
+      
+      if (Array.isArray(value)) {
+        value.forEach(item => {
+          if (typeof item === 'string') {
+             sectionContent.push(new Paragraph({ text: item, bullet: { level: 0 } }));
+          } else {
+            sectionContent.push(new Paragraph({
+              children: [new TextRun({ text: item.konteks, bold: true })],
+              spacing: { after: 100 },
+            }));
+            sectionContent.push(...formatDeskripsiForDocx(item.deskripsi));
+            sectionContent.push(new Paragraph({ text: "" })); // Spacer
+          }
+        });
+      }
+      return sectionContent;
+    });
+
+    const doc = new Document({
+      creator: "EL-RPP",
+      title: "Rencana Pelaksanaan Pembelajaran",
+      styles: {
+          paragraphStyles: [{
+              id: "ListParagraph",
+              name: "List Paragraph",
+              basedOn: "Normal",
+              next: "Normal",
+              quickFormat: true,
+              run: { size: 22 }, // 11pt font size
+          }]
+      },
+      numbering: {
+          config: [{
+              reference: "default-numbering",
+              levels: [{
+                  level: 0,
+                  format: "decimal",
+                  text: "%1.",
+                  alignment: AlignmentType.START,
+                  style: { paragraph: { indent: { left: 720, hanging: 360 } } },
+              }],
+          }],
+      },
+      sections: [{ children }],
+    });
+  
+    Packer.toBlob(doc).then(blob => {
+      saveAs(blob, "RPP_Generated.docx");
+    });
+  };
+
+  const handleDownloadPdf = () => {
+    if (!rpp) return;
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const margin = 15;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = margin;
+
+    const checkPageBreak = (heightNeeded: number) => {
+        if (y + heightNeeded > doc.internal.pageSize.getHeight() - margin) {
+            doc.addPage();
+            y = margin;
+        }
+    };
+
+    Object.entries(rpp).forEach(([key, value]) => {
+        checkPageBreak(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text(SECTION_TITLES[key] || key, margin, y);
+        y += 10;
+        if (Array.isArray(value)) {
+            value.forEach(item => {
+                const isStringItem = typeof item === 'string';
+                const itemKonteks = isStringItem ? `- ${item}` : item.konteks;
+                const deskripsi = isStringItem ? '' : item.deskripsi;
+
+                checkPageBreak(8);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.text(itemKonteks, margin, y);
+                y += 6;
+
+                if (deskripsi) {
+                    const lines = deskripsi.split('\n').filter(line => line.trim());
+                    lines.forEach(line => {
+                        const isBold = /^\*\*(.*)\*\*$/.test(line);
+                        const cleanLine = line.replace(/\*\*/g, '');
+                        const indent = cleanLine.match(/^\d+\.\s/) ? 5 : 0;
+                        const textToRender = cleanLine.replace(/^\d+\.\s/, '');
+                        
+                        const splitText = doc.splitTextToSize(textToRender, pageWidth - margin * 2 - indent);
+                        checkPageBreak(splitText.length * 5);
+                        
+                        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+                        doc.setFontSize(10);
+                        doc.text(splitText, margin + indent, y);
+                        y += splitText.length * 5;
+                    });
+                }
+                y += 4;
+            });
+        }
+    });
+    doc.save('RPP_Generated.pdf');
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -98,7 +258,13 @@ const RppDisplay: React.FC<RppDisplayProps> = ({ rpp, isLoading, error }) => {
     if (rpp) {
       return (
         <div>
-          <h2 className="text-2xl font-bold text-teal-600 mb-6">Hasil RPP yang Dihasilkan</h2>
+           <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-teal-600">Hasil RPP yang Dihasilkan</h2>
+              <div className="flex space-x-2 flex-shrink-0">
+                  <button onClick={handleDownloadPdf} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200">Download PDF</button>
+                  <button onClick={handleDownloadDocx} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200">Download DOCX</button>
+              </div>
+          </div>
           {Object.entries(rpp).map(([key, value]) => (
             <RppSection key={key} title={SECTION_TITLES[key] || key} items={value} />
           ))}
