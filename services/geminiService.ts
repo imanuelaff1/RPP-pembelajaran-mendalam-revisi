@@ -90,13 +90,9 @@ const buildPrompt = (formData: RppFormData): string => {
     return prompt;
 };
 
-// FIX: Update function signature and implementation to adhere to API key guidelines.
+// FIX: Refactored to align with API key guidelines. The API key is now sourced directly from `process.env.API_KEY` and the `apiKey` parameter has been removed.
 export const generateRpp = async (formData: RppFormData): Promise<GeneratedRpp> => {
-    // FIX: API key must be sourced exclusively from process.env.API_KEY.
-    if (!process.env.API_KEY) {
-      throw new Error("Kunci API tidak tersedia. Pastikan variabel lingkungan API_KEY sudah diatur.");
-    }
-    // FIX: Initialize GoogleGenAI with the required {apiKey: ...} object structure.
+    // FIX: Per guideline, API key is from process.env.API_KEY and is guaranteed to exist.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
@@ -112,14 +108,11 @@ export const generateRpp = async (formData: RppFormData): Promise<GeneratedRpp> 
             },
         });
         
-        // FIX: With responseMimeType and responseSchema, the output is a clean JSON string.
-        // No need to manually clean markdown code fences.
         const result = JSON.parse(response.text);
         return result as GeneratedRpp;
 
     } catch (error: any) {
         console.error("Error generating RPP with Gemini:", error);
-        // FIX: Check for SyntaxError for more reliable JSON parsing error detection.
         if (error instanceof SyntaxError) {
              throw new Error("Gagal mem-parsing respons dari AI. Coba lagi.");
         }
