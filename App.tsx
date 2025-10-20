@@ -1,14 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import RppForm from './components/RppForm';
 import RppDisplay from './components/RppDisplay';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
-// FIX: Removed unused Settings component import.
+import Settings from './components/Settings'; // Import Settings component
 import { generateRpp } from './services/geminiService';
 import type { RppFormData, GeneratedRpp, EducationUnitType, PedagogyModel, GraduateProfileDimension } from './types';
 import { PEDAGOGY_MODELS } from './constants';
-
-// FIX: Removed View type as it's no longer needed.
 
 const App: React.FC = () => {
   const [formData, setFormData] = useState<RppFormData>({
@@ -35,8 +33,22 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
-  // FIX: Removed state and logic for custom API key management and view switching to comply with Gemini API guidelines.
-  // The API key is now handled exclusively by the geminiService, which also resolves the original TypeScript error.
+  // Restore state for multi-view and API key management
+  const [activeView, setActiveView] = useState<'rpp' | 'settings'>('rpp');
+  const [apiMode, setApiMode] = useState<'default' | 'custom'>('default');
+  const [customApiKey, setCustomApiKey] = useState<string>('');
+
+  // Load settings from localStorage on initial render
+  useEffect(() => {
+    const savedMode = localStorage.getItem('apiMode') as 'default' | 'custom' | null;
+    const savedKey = localStorage.getItem('customApiKey');
+    if (savedMode) {
+      setApiMode(savedMode);
+    }
+    if (savedKey) {
+      setCustomApiKey(savedKey);
+    }
+  }, []);
 
   const handleFormChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -54,36 +66,51 @@ const App: React.FC = () => {
     });
   }, []);
 
+  // Handle saving settings from the Settings page
+  const handleSaveSettings = useCallback((mode: 'default' | 'custom', key: string) => {
+    setApiMode(mode);
+    setCustomApiKey(key);
+    localStorage.setItem('apiMode', mode);
+    localStorage.setItem('customApiKey', key);
+  }, []);
+
+  // Update handleSubmit to use the selected API key
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // FIX: API key validation is now handled within geminiService.
-    
+    // Determine which API key to use
+    // @ts-ignore - VITE_API_KEY is injected by the build tool
+    const defaultApiKey = import.meta.env.VITE_API_KEY;
+    const apiKey = apiMode === 'custom' ? customApiKey : defaultApiKey;
+
+    if (!apiKey) {
+      setError("Kunci API tidak dikonfigurasi. Harap atur di halaman Pengaturan atau konfigurasikan variabel lingkungan VITE_API_KEY.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setGeneratedRpp(null);
 
     try {
-      // FIX: Call generateRpp without passing an API key.
-      const result = await generateRpp(formData);
+      // Pass the selected API key to the service
+      const result = await generateRpp(formData, apiKey);
       setGeneratedRpp(result);
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan yang tidak diketahui.');
     } finally {
       setIsLoading(false);
     }
-  }, [formData]);
+  }, [formData, apiMode, customApiKey]);
   
-  // FIX: Simplified the disabled condition as API key is no longer managed in the UI.
   const isSubmitDisabled = isLoading;
 
-  // FIX: Removed renderContent function and inlined the main view to simplify the component.
   return (
     <div className="flex h-screen bg-gray-100 font-sans text-gray-800">
-      {/* FIX: Sidebar no longer needs props for view management. */}
-      <Sidebar />
+      <Sidebar activeView={activeView} setActiveView={setActiveView} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <>
+        {activeView === 'rpp' ? (
+          <>
             <Header />
             <main className="flex-grow container mx-auto p-4 lg:p-8 grid grid-cols-1 lg:grid-cols-2 lg:gap-8 min-h-0">
                 <RppForm
@@ -102,7 +129,14 @@ const App: React.FC = () => {
             <footer className="text-center p-4 text-sm text-gray-500 flex-shrink-0">
                 <p>&copy; 2024 EL-RPP. Ditenagai oleh Google Gemini.</p>
             </footer>
-        </>
+          </>
+        ) : (
+            <Settings 
+                currentMode={apiMode}
+                currentKey={customApiKey}
+                onSave={handleSaveSettings}
+            />
+        )}
       </div>
     </div>
   );
