@@ -92,13 +92,12 @@ const buildPrompt = (formData: RppFormData): string => {
     return prompt;
 };
 
+// FIX: Refactor to use API_KEY from environment variables exclusively, per guidelines.
 export const generateRpp = async (formData: RppFormData): Promise<GeneratedRpp> => {
-    // FIX: Switched from import.meta.env to process.env to align with guidelines and fix TS error.
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      throw new Error("Kunci API tidak dikonfigurasi. Aplikasi ini memerlukan Kunci API untuk berfungsi.");
+    if (!process.env.API_KEY) {
+      throw new Error("Kunci API tidak tersedia. Silakan konfigurasikan variabel lingkungan API_KEY.");
     }
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
         const prompt = buildPrompt(formData);

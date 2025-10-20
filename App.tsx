@@ -3,11 +3,9 @@ import React, { useState, useCallback, useEffect } from 'react';
 import RppForm from './components/RppForm';
 import RppDisplay from './components/RppDisplay';
 import Header from './components/Header';
-import Sidebar from './components/Sidebar';
 import { generateRpp } from './services/geminiService';
 import type { RppFormData, GeneratedRpp, EducationUnitType, PedagogyModel, GraduateProfileDimension } from './types';
-import { PEDAGOGY_MODELS, GRADUATE_PROFILE_DIMENSIONS } from './constants';
-
+import { PEDAGOGY_MODELS } from './constants';
 
 const App: React.FC = () => {
   const [formData, setFormData] = useState<RppFormData>({
@@ -33,16 +31,14 @@ const App: React.FC = () => {
   const [generatedRpp, setGeneratedRpp] = useState<GeneratedRpp | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isApiKeyMissing, setIsApiKeyMissing] = useState<boolean>(false);
-
+  
+  // FIX: Adhere to guidelines by exclusively using process.env.API_KEY.
+  // Removed custom API key logic, settings page, and related state.
   useEffect(() => {
-    // FIX: Switched from import.meta.env to process.env to align with guidelines and fix TS error.
     if (!process.env.API_KEY) {
-        setIsApiKeyMissing(true);
-        setError("Kunci API tidak dikonfigurasi. Aplikasi ini memerlukan Kunci API untuk berfungsi. Silakan hubungi administrator.");
+        setError("Kunci API tidak dikonfigurasi. Harap atur variabel lingkungan API_KEY.");
     }
   }, []);
-
 
   const handleFormChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -62,7 +58,11 @@ const App: React.FC = () => {
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isApiKeyMissing) return;
+    
+    if (!process.env.API_KEY) {
+        setError('Kunci API tidak tersedia. Mohon konfigurasikan variabel lingkungan API_KEY.');
+        return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -76,34 +76,30 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [formData, isApiKeyMissing]);
+  }, [formData]);
+  
+  const isSubmitDisabled = isLoading || !process.env.API_KEY;
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans text-gray-800">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col max-h-screen overflow-hidden">
-          <>
-            <Header />
-            <main className="flex-grow container mx-auto p-4 lg:p-8 grid grid-cols-1 lg:grid-cols-2 lg:gap-8 min-h-0">
-              <RppForm
-                formData={formData}
-                onFormChange={handleFormChange}
-                onCheckboxChange={handleCheckboxChange}
-                onSubmit={handleSubmit}
-                isLoading={isLoading || isApiKeyMissing}
-              />
-              <RppDisplay
-                rpp={generatedRpp}
-                isLoading={isLoading}
-                error={error}
-              />
-            </main>
-            <footer className="text-center p-4 text-sm text-gray-500 flex-shrink-0">
-              <p>&copy; 2024 EL-RPP. Ditenagai oleh Google Gemini.</p>
-            </footer>
-          </>
-      </div>
+    <div className="flex flex-col h-screen bg-gray-100 font-sans text-gray-800 overflow-hidden">
+        <Header />
+        <main className="flex-grow container mx-auto p-4 lg:p-8 grid grid-cols-1 lg:grid-cols-2 lg:gap-8 min-h-0">
+          <RppForm
+            formData={formData}
+            onFormChange={handleFormChange}
+            onCheckboxChange={handleCheckboxChange}
+            onSubmit={handleSubmit}
+            isLoading={isSubmitDisabled}
+          />
+          <RppDisplay
+            rpp={generatedRpp}
+            isLoading={isLoading}
+            error={error}
+          />
+        </main>
+        <footer className="text-center p-4 text-sm text-gray-500 flex-shrink-0">
+          <p>&copy; 2024 EL-RPP. Ditenagai oleh Google Gemini.</p>
+        </footer>
     </div>
   );
 };
