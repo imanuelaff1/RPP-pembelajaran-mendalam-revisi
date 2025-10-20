@@ -26,12 +26,25 @@ export interface RppSectionItem {
 }
 
 export interface RppFormData {
+  schoolName: string;
+  teacherName: string;
+  nip: string;
+  city: string;
+  academicYear: string;
   educationUnitType: EducationUnitType;
-  phaseClass: string;
+  class: string;
+  phase: string;
+  semester: string;
   subject: string;
   topicTheme: string;
   learningOutcomes: string;
-  classProfile: string;
+  kktp: string;
+  facilities: string;
+  studentCharacteristics: string;
+  learningInterests: string;
+  learningMotivation: string;
+  learningAchievement: string;
+  schoolEnvironment: string;
   graduateProfileDimensions: GraduateProfileDimension[];
   pedagogyModel: PedagogyModel;
   learningContext: string;

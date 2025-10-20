@@ -52,27 +52,44 @@ const buildPrompt = (formData: RppFormData): string => {
     
     --- DATA RPP ---
     
-    **1. Informasi Umum:**
+    **1. Informasi Institusional:**
+    - Nama Sekolah: ${formData.schoolName}
+    - Nama Guru: ${formData.teacherName}
+    - NIP: ${formData.nip || 'Tidak diisi'}
+    - Kota: ${formData.city}
+    - Tahun Pelajaran: ${formData.academicYear}
+
+    **2. Informasi Umum RPP:**
     - Tipe Satuan Pendidikan: ${formData.educationUnitType}
-    - Fase/Kelas: ${formData.phaseClass}
+    - Kelas: ${formData.class}
+    - Fase: ${formData.phase}
+    - Semester: ${formData.semester}
     - Mata Pelajaran: ${formData.subject}
     - Topik/Tema: ${formData.topicTheme}
     - Alokasi Waktu: ${formData.timeAllocation}
     - Jumlah Pertemuan: ${formData.meetings}
     
-    **2. Konteks Pembelajaran:**
+    **3. Konteks Pembelajaran:**
     - Capaian Pembelajaran (CP) Ringkas: ${formData.learningOutcomes}
-    - Profil Kelas: ${formData.classProfile}
-    - Konteks & Sumber Daya (Lingkungan, Sarana, Teknologi): ${formData.learningContext}
+    - Kriteria Ketercapaian Tujuan Pembelajaran (KKTP): ${formData.kktp}
+    - Konteks & Sumber Daya (Lingkungan, Teknologi, dll): ${formData.learningContext}
+    - Sarana dan Prasarana di Kelas: ${formData.facilities}
     
-    **3. Kerangka Pembelajaran Mendalam:**
+    **4. Identifikasi Awal Siswa:**
+    - Karakteristik Siswa: ${formData.studentCharacteristics}
+    - Minat Belajar: ${formData.learningInterests}
+    - Motivasi Belajar: ${formData.learningMotivation}
+    - Prestasi Belajar: ${formData.learningAchievement}
+    - Lingkungan Sekolah: ${formData.schoolEnvironment}
+    
+    **5. Kerangka Pembelajaran Mendalam:**
     - Dimensi Profil Lulusan yang Ditekankan: ${formData.graduateProfileDimensions.join(', ')}
     - Model/Strategi Pedagogis Utama: ${formData.pedagogyModel}
     `;
 
     if (formData.educationUnitType === 'SLB/ABK') {
         prompt += `
-    **4. Data Khusus Siswa Berkebutuhan Khusus (ABK):**
+    **6. Data Khusus Siswa Berkebutuhan Khusus (ABK):**
     - Kategori Kebutuhan: ${formData.slbCategory}
     - Target Individual (IEP): ${formData.iepTargets}
     - Profil Sensorik & Kesehatan: ${formData.sensoryProfile}
