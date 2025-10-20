@@ -42,21 +42,45 @@ const responseSchema = {
     required: Object.keys(responseSchemaProperties)
 };
 
+// --- START OF DEBUGGING CHANGE ---
+// The original complex buildPrompt function is temporarily commented out.
+// We are using a very simple prompt to test if the API connection itself is working.
 const buildPrompt = (formData: RppFormData): string => {
-    let prompt = `Anda adalah seorang ahli pedagogi dan desainer instruksional yang sangat berpengalaman di Indonesia. Tugas Anda adalah membuat Rencana Pelaksanaan Pembelajaran (RPP) yang mendalam, berpusat pada siswa, dan inovatif berdasarkan data yang diberikan.
+    return `
+    Anda adalah seorang ahli pedagogi.
+    Tugas Anda adalah membuat Rencana Pelaksanaan Pembelajaran (RPP) yang sangat sederhana.
+    
+    **Instruksi Kritis untuk Format Konten:**
+    1.  **HANYA JSON:** Seluruh output Anda HARUS berupa objek JSON tunggal yang valid, tanpa teks pembuka, penutup, atau penjelasan lain.
+    2.  **Struktur Deskripsi (FORMAT SANGAT PENTING & WAJIB DIIKUTI):** Setiap nilai untuk properti 'deskripsi' HARUS mengikuti format hierarkis yang ketat:
+        - **Poin Utama:** Selalu tulis sebagai teks tebal (menggunakan sintaks Markdown \`**...**\`).
+        - **Sub-Poin Penjelas:** Jika ada, selalu tulis sebagai daftar bernomor (dimulai dari \`1.\`, \`2.\`, dst.).
+        - **LARANGAN MUTLAK:** Jangan pernah menggunakan bullet point (\`*\`) atau tanda hubung (\`-\`).
+
+    Topik RPP: Siklus Air untuk kelas 5 SD.
+    
+    Sekarang, hasilkan RPP dalam format JSON yang diminta.
+    `;
+};
+// --- END OF DEBUGGING CHANGE ---
+
+/*
+// --- ORIGINAL PROMPT (COMMENTED OUT FOR DEBUGGING) ---
+const buildPrompt = (formData: RppFormData): string => {
+    let prompt = \`Anda adalah seorang ahli pedagogi dan desainer instruksional yang sangat berpengalaman di Indonesia. Tugas Anda adalah membuat Rencana Pelaksanaan Pembelajaran (RPP) yang mendalam, berpusat pada siswa, dan inovatif berdasarkan data yang diberikan.
 
     **Instruksi Kritis untuk Format Konten:**
     1.  **HANYA JSON:** Seluruh output Anda HARUS berupa objek JSON tunggal yang valid, tanpa teks pembuka, penutup, atau penjelasan lain.
     2.  **Struktur Deskripsi (FORMAT SANGAT PENTING & WAJIB DIIKUTI):** Setiap nilai untuk properti 'deskripsi' HARUS mengikuti format hierarkis yang ketat:
-        - **Poin Utama:** Selalu tulis sebagai teks tebal (menggunakan sintaks Markdown \`**...**\`). JANGAN diawali dengan karakter lain (seperti *, -, atau nomor).
-        - **Sub-Poin Penjelas:** Jika ada, selalu tulis sebagai daftar bernomor (dimulai dari \`1.\`, \`2.\`, dst.) yang terletak di baris baru di bawah poin utama.
-        - **LARANGAN MUTLAK:** Jangan pernah menggunakan bullet point (\`*\`) atau tanda hubung (\`-\`) dalam bentuk apapun di seluruh respons Anda. Penggunaan karakter ini akan dianggap sebagai kegagalan.
+        - **Poin Utama:** Selalu tulis sebagai teks tebal (menggunakan sintaks Markdown \\\`**...**\\\`). JANGAN diawali dengan karakter lain (seperti *, -, atau nomor).
+        - **Sub-Poin Penjelas:** Jika ada, selalu tulis sebagai daftar bernomor (dimulai dari \\\`1.\\\`, \\\`2.\\\`, dst.) yang terletak di baris baru di bawah poin utama.
+        - **LARANGAN MUTLAK:** Jangan pernah menggunakan bullet point (\\\`*\\\`) atau tanda hubung (\\\`-\\\`) dalam bentuk apapun di seluruh respons Anda. Penggunaan karakter ini akan dianggap sebagai kegagalan.
         - **Contoh Format yang BENAR:**
-          "deskripsi": "**Karakteristik Peserta Didik:**\\n1. Siswa memiliki gaya belajar visual.\\n2. Beberapa siswa memerlukan bimbingan tambahan."
+          "deskripsi": "**Karakteristik Peserta Didik:**\\\\n1. Siswa memiliki gaya belajar visual.\\\\n2. Beberapa siswa memerlukan bimbingan tambahan."
         - **Contoh Format yang SALAH:**
-          "deskripsi": "* Karakteristik Peserta Didik\\n- Siswa visual\\n- Bimbingan tambahan"
+          "deskripsi": "* Karakteristik Peserta Didik\\\\n- Siswa visual\\\\n- Bimbingan tambahan"
     3.  **Instruksi Khusus untuk Bagian A (Identitas dan Konteks):** JANGAN mengulangi data institusional dan informasi umum RPP (seperti Nama Sekolah, Kelas, Mata Pelajaran) yang sudah disediakan dalam input. Fokuskan isi bagian ini HANYA pada analisis konteks yang relevan seperti karakteristik umum satuan pendidikan atau lingkungan belajar siswa.
-    4.  **Instruksi Khusus untuk KKTP (Bagian B):** Untuk bagian \`B_capaianTujuanPembelajaran\`, pecah Capaian Pembelajaran yang diberikan menjadi beberapa 'tujuan' pembelajaran yang spesifik. Untuk setiap tujuan, buatlah 'kriteria' ketercapaian yang jelas dan terukur. Gunakan Nilai Minimal Ketercapaian (${formData.kktp || '75'}) sebagai acuan untuk kelulusan siswa dalam kesimpulan asesmen.
+    4.  **Instruksi Khusus untuk KKTP (Bagian B):** Untuk bagian \\\`B_capaianTujuanPembelajaran\\\`, pecah Capaian Pembelajaran yang diberikan menjadi beberapa 'tujuan' pembelajaran yang spesifik. Untuk setiap tujuan, buatlah 'kriteria' ketercapaian yang jelas dan terukur. Gunakan Nilai Minimal Ketercapaian (\${formData.kktp || '75'}) sebagai acuan untuk kelulusan siswa dalam kesimpulan asesmen.
     5.  **Kualitas & Bahasa:** Isi setiap bagian RPP dengan deskripsi yang konkret dan implementatif dalam Bahasa Indonesia yang baik dan benar.
     6.  **Konteks SLB/ABK:** Jika tipe satuan pendidikan adalah "SLB/ABK", berikan perhatian khusus pada bagian diferensiasi, akomodasi, dan data spesifik ABK yang diberikan.
 
@@ -65,59 +89,61 @@ const buildPrompt = (formData: RppFormData): string => {
     --- DATA RPP ---
     
     **1. Informasi Institusional:**
-    - Nama Sekolah: ${formData.schoolName}
-    - Nama Guru: ${formData.teacherName}
-    - NIP: ${formData.nip || 'Tidak diisi'}
-    - Kota: ${formData.city}
-    - Tahun Pelajaran: ${formData.academicYear}
+    - Nama Sekolah: \${formData.schoolName}
+    - Nama Guru: \${formData.teacherName}
+    - NIP: \${formData.nip || 'Tidak diisi'}
+    - Kota: \${formData.city}
+    - Tahun Pelajaran: \${formData.academicYear}
 
     **2. Informasi Umum RPP:**
-    - Tipe Satuan Pendidikan: ${formData.educationUnitType}
-    - Kelas: ${formData.class}
-    - Fase: ${formData.phase}
-    - Semester: ${formData.semester}
-    - Mata Pelajaran: ${formData.subject}
-    - Topik/Tema: ${formData.topicTheme}
-    - Alokasi Waktu: ${formData.timeAllocation}
-    - Jumlah Pertemuan: ${formData.meetings}
+    - Tipe Satuan Pendidikan: \${formData.educationUnitType}
+    - Kelas: \${formData.class}
+    - Fase: \${formData.phase}
+    - Semester: \${formData.semester}
+    - Mata Pelajaran: \${formData.subject}
+    - Topik/Tema: \${formData.topicTheme}
+    - Alokasi Waktu: \${formData.timeAllocation}
+    - Jumlah Pertemuan: \${formData.meetings}
     
     **3. Konteks Pembelajaran:**
-    - Capaian Pembelajaran (CP) Ringkas: ${formData.learningOutcomes}
-    - Nilai Minimal Ketercapaian (KKM): ${formData.kktp || '75'}
-    - Konteks & Sumber Daya (Lingkungan, Teknologi, dll): ${formData.learningContext}
-    - Sarana dan Prasarana di Kelas: ${formData.facilities}
+    - Capaian Pembelajaran (CP) Ringkas: \${formData.learningOutcomes}
+    - Nilai Minimal Ketercapaian (KKM): \${formData.kktp || '75'}
+    - Konteks & Sumber Daya (Lingkungan, Teknologi, dll): \${formData.learningContext}
+    - Sarana dan Prasarana di Kelas: \${formData.facilities}
     
     **4. Identifikasi Awal Siswa:**
-    - Karakteristik Siswa: ${formData.studentCharacteristics}
-    - Minat Belajar: ${formData.learningInterests}
-    - Motivasi Belajar: ${formData.learningMotivation}
-    - Prestasi Belajar: ${formData.learningAchievement}
-    - Lingkungan Sekolah: ${formData.schoolEnvironment}
+    - Karakteristik Siswa: \${formData.studentCharacteristics}
+    - Minat Belajar: \${formData.learningInterests}
+    - Motivasi Belajar: \${formData.learningMotivation}
+    - Prestasi Belajar: \${formData.learningAchievement}
+    - Lingkungan Sekolah: \${formData.schoolEnvironment}
     
     **5. Kerangka Pembelajaran Mendalam:**
-    - Dimensi Profil Lulusan yang Ditekankan: ${formData.graduateProfileDimensions.join(', ')}
-    - Model/Strategi Pedagogis Utama: ${formData.pedagogyModel}
-    `;
+    - Dimensi Profil Lulusan yang Ditekankan: \${formData.graduateProfileDimensions.join(', ')}
+    - Model/Strategi Pedagogis Utama: \${formData.pedagogyModel}
+    \`;
 
     if (formData.educationUnitType === 'SLB/ABK') {
-        prompt += `
+        prompt += \`
     **6. Data Khusus Siswa Berkebutuhan Khusus (ABK):**
-    - Kategori Kebutuhan: ${formData.slbCategory}
-    - Target Individual (IEP): ${formData.iepTargets}
-    - Profil Sensorik & Kesehatan: ${formData.sensoryProfile}
-    - Mode Komunikasi: ${formData.communicationMode}
-    - Alat Bantu yang Digunakan: ${formData.assistiveTools}
-    - Peran Pendamping/Terapis/Orang Tua: ${formData.assistantRole}
-    `;
+    - Kategori Kebutuhan: \${formData.slbCategory}
+    - Target Individual (IEP): \${formData.iepTargets}
+    - Profil Sensorik & Kesehatan: \${formData.sensoryProfile}
+    - Mode Komunikasi: \${formData.communicationMode}
+    - Alat Bantu yang Digunakan: \${formData.assistiveTools}
+    - Peran Pendamping/Terapis/Orang Tua: \${formData.assistantRole}
+    \`;
     }
 
-    prompt += `
+    prompt += \`
     --- AKHIR DATA ---
     
     Sekarang, berdasarkan data dan SEMUA instruksi di atas, hasilkan RPP dalam format JSON yang diminta.
-    `;
+    \`;
     return prompt;
 };
+*/
+
 
 export const generateRpp = async (formData: RppFormData, apiKey: string): Promise<GeneratedRpp> => {
     if (!apiKey) {
