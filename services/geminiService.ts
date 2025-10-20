@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { RppFormData, GeneratedRpp } from '../types';
 
@@ -11,7 +10,6 @@ const rppSectionItemSchema = {
   required: ['konteks', 'deskripsi'],
 };
 
-// FIX: Define properties separately to avoid "used before declaration" error when setting `required` field.
 const responseSchemaProperties = {
     A_identitasKonteks: { type: Type.ARRAY, items: rppSectionItemSchema, description: "Identitas dan Konteks RPP" },
     B_capaianTujuanPembelajaran: { type: Type.ARRAY, items: rppSectionItemSchema, description: "Capaian dan Tujuan Pembelajaran" },
@@ -92,11 +90,13 @@ const buildPrompt = (formData: RppFormData): string => {
     return prompt;
 };
 
-// FIX: Refactor to use API_KEY from environment variables exclusively, per guidelines.
+// FIX: Update function signature and implementation to adhere to API key guidelines.
 export const generateRpp = async (formData: RppFormData): Promise<GeneratedRpp> => {
+    // FIX: API key must be sourced exclusively from process.env.API_KEY.
     if (!process.env.API_KEY) {
-      throw new Error("Kunci API tidak tersedia. Silakan konfigurasikan variabel lingkungan API_KEY.");
+      throw new Error("Kunci API tidak tersedia. Pastikan variabel lingkungan API_KEY sudah diatur.");
     }
+    // FIX: Initialize GoogleGenAI with the required {apiKey: ...} object structure.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
@@ -112,15 +112,15 @@ export const generateRpp = async (formData: RppFormData): Promise<GeneratedRpp> 
             },
         });
         
-        const jsonText = response.text.trim();
-        const cleanedJsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-
-        const result = JSON.parse(cleanedJsonText);
+        // FIX: With responseMimeType and responseSchema, the output is a clean JSON string.
+        // No need to manually clean markdown code fences.
+        const result = JSON.parse(response.text);
         return result as GeneratedRpp;
 
     } catch (error: any) {
         console.error("Error generating RPP with Gemini:", error);
-        if (error.message.includes('JSON')) {
+        // FIX: Check for SyntaxError for more reliable JSON parsing error detection.
+        if (error instanceof SyntaxError) {
              throw new Error("Gagal mem-parsing respons dari AI. Coba lagi.");
         }
         throw new Error(`Gagal menghasilkan RPP: ${error.message}`);
