@@ -121,7 +121,7 @@ const buildPrompt = (formData: RppFormData): string => {
 
 export const generateRpp = async (formData: RppFormData, apiKey: string): Promise<GeneratedRpp> => {
     if (!apiKey) {
-      throw new Error("API Key tidak tersedia. Harap konfigurasikan di halaman Pengaturan.");
+      throw new Error("API Key belum diatur. Mohon konfigurasikan di halaman Pengaturan.");
     }
     const ai = new GoogleGenAI({ apiKey });
 
@@ -143,6 +143,9 @@ export const generateRpp = async (formData: RppFormData, apiKey: string): Promis
 
     } catch (error: any) {
         console.error("Error generating RPP with Gemini:", error);
+        if (error.message.includes('API key not valid')) {
+            throw new Error("API Key yang Anda masukkan tidak valid. Mohon periksa kembali di halaman Pengaturan.");
+        }
         if (error instanceof SyntaxError) {
              throw new Error("Gagal mem-parsing respons dari AI. Coba lagi.");
         }

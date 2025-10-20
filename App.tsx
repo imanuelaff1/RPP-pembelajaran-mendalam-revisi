@@ -50,7 +50,6 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('rpp');
   
   const [apiKey, setApiKey] = useState<string>('');
-  const [apiMode, setApiMode] = useState<'default' | 'custom'>('default');
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
@@ -64,11 +63,9 @@ const App: React.FC = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
   
-  // Effect for loading API settings from localStorage
+  // Effect for loading API key from localStorage
   useEffect(() => {
-      const savedMode = localStorage.getItem('apiMode') as 'default' | 'custom' || 'default';
       const savedKey = localStorage.getItem('apiKey') || '';
-      setApiMode(savedMode);
       setApiKey(savedKey);
   }, []);
 
@@ -92,19 +89,16 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const handleSaveSettings = useCallback((mode: 'default' | 'custom', key: string) => {
-      setApiMode(mode);
+  const handleSaveSettings = useCallback((key: string) => {
       setApiKey(key);
-      localStorage.setItem('apiMode', mode);
       localStorage.setItem('apiKey', key);
   }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const keyToUse = apiMode === 'custom' ? apiKey : (process.env.API_KEY || '');
-    if (!keyToUse) {
-        setError('API Key tidak valid. Mohon periksa Pengaturan API Anda.');
+    if (!apiKey) {
+        setError('API Key belum diatur. Mohon konfigurasikan di halaman Pengaturan.');
         setActiveView('settings');
         return;
     }
@@ -115,14 +109,14 @@ const App: React.FC = () => {
     setActiveView('rpp');
 
     try {
-      const result = await generateRpp(formData, keyToUse);
+      const result = await generateRpp(formData, apiKey);
       setGeneratedRpp(result);
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan yang tidak diketahui.');
     } finally {
       setIsLoading(false);
     }
-  }, [formData, apiMode, apiKey]);
+  }, [formData, apiKey]);
   
   const isSubmitDisabled = isLoading;
 
@@ -137,7 +131,6 @@ const App: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {activeView === 'settings' ? (
            <Settings 
-             currentMode={apiMode}
              currentKey={apiKey}
              onSave={handleSaveSettings}
            />
