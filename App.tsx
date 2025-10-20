@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import RppForm from './components/RppForm';
 import RppDisplay from './components/RppDisplay';
@@ -35,6 +36,7 @@ const App: React.FC = () => {
   const [isApiKeyMissing, setIsApiKeyMissing] = useState<boolean>(false);
 
   useEffect(() => {
+    // FIX: Switched from import.meta.env to process.env to align with guidelines and fix TS error.
     if (!process.env.API_KEY) {
         setIsApiKeyMissing(true);
         setError("Kunci API tidak dikonfigurasi. Aplikasi ini memerlukan Kunci API untuk berfungsi. Silakan hubungi administrator.");

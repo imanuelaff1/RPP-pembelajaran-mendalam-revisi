@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { RppFormData, GeneratedRpp } from '../types';
 
@@ -92,6 +93,7 @@ const buildPrompt = (formData: RppFormData): string => {
 };
 
 export const generateRpp = async (formData: RppFormData): Promise<GeneratedRpp> => {
+    // FIX: Switched from import.meta.env to process.env to align with guidelines and fix TS error.
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
       throw new Error("Kunci API tidak dikonfigurasi. Aplikasi ini memerlukan Kunci API untuk berfungsi.");

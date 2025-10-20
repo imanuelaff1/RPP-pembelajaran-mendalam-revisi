@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, Numbering, VerticalAlign } from 'docx';
+// FIX: Added NumberFormat to imports for use in docx generation.
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, Numbering, VerticalAlign, NumberFormat } from 'docx';
 import saveAs from 'file-saver';
 import type { GeneratedRpp, RppSectionItem } from '../types';
 import Spinner from './Spinner';
@@ -30,7 +32,8 @@ const SECTION_TITLES: { [key in keyof Omit<GeneratedRpp, 'M_daftarRujukanInterna
 };
 
 const renderMarkdown = (text: string) => {
-    const rawMarkup = marked.parse(text, { breaks: true });
+    // FIX: Switched to parseSync to avoid promise return type which is incompatible with DOMPurify.sanitize and dangerouslySetInnerHTML.
+    const rawMarkup = marked.parseSync(text, { breaks: true });
     const sanitizedMarkup = DOMPurify.sanitize(rawMarkup);
     return { __html: sanitizedMarkup };
 };
@@ -152,7 +155,8 @@ const RppDisplay: React.FC<RppDisplayProps> = ({ rpp, isLoading, error }) => {
                 reference: "default-numbering",
                 levels: [{
                     level: 0,
-                    format: "decimal",
+                    // FIX: Used NumberFormat.DECIMAL enum instead of string "decimal" to match docx library's expected type.
+                    format: NumberFormat.DECIMAL,
                     text: "%1.",
                     alignment: AlignmentType.START,
                     style: { paragraph: { indent: { left: 720, hanging: 360 } } },
@@ -253,9 +257,12 @@ const RppDisplay: React.FC<RppDisplayProps> = ({ rpp, isLoading, error }) => {
 
         if (error) {
             return (
-                <div className="flex flex-col items-center justify-center h-full text-center text-red-600 bg-red-50 p-6 rounded-lg">
+                <div className="flex flex-col items-center justify-center h-full text-center text-red-700 bg-red-50 p-8 rounded-lg border border-red-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     <h3 className="text-xl font-bold">Terjadi Kesalahan</h3>
-                    <p className="mt-2">{error}</p>
+                    <p className="mt-2 max-w-md">{error}</p>
                 </div>
             );
         }
