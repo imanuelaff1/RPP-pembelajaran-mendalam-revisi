@@ -91,9 +91,10 @@ const buildPrompt = (formData: RppFormData): string => {
     return prompt;
 };
 
-export const generateRpp = async (formData: RppFormData, apiKey: string): Promise<GeneratedRpp> => {
+export const generateRpp = async (formData: RppFormData): Promise<GeneratedRpp> => {
+    const apiKey = process.env.API_KEY;
     if (!apiKey) {
-      throw new Error("API Key tidak dikonfigurasi. Silakan atur di halaman Pengaturan.");
+      throw new Error("Kunci API tidak dikonfigurasi. Aplikasi ini memerlukan Kunci API untuk berfungsi.");
     }
     const ai = new GoogleGenAI({ apiKey });
 
