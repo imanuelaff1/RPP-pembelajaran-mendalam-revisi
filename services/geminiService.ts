@@ -90,9 +90,13 @@ const buildPrompt = (formData: RppFormData): string => {
     return prompt;
 };
 
-// FIX: Refactored to align with API key guidelines. The API key is now sourced directly from `process.env.API_KEY` and the `apiKey` parameter has been removed.
+// FIX: Update function to align with Gemini API guidelines. API key is now sourced exclusively from `process.env.API_KEY` and is no longer passed as a parameter.
 export const generateRpp = async (formData: RppFormData): Promise<GeneratedRpp> => {
-    // FIX: Per guideline, API key is from process.env.API_KEY and is guaranteed to exist.
+    // FIX: Per Gemini API guidelines, API key must be sourced from environment variables.
+    if (!process.env.API_KEY) {
+        throw new Error("Kunci API tidak dikonfigurasi. Harap atur variabel lingkungan API_KEY.");
+    }
+    // FIX: Per Gemini API guidelines, initialize with an object containing the apiKey.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
