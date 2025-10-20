@@ -10,9 +10,19 @@ const rppSectionItemSchema = {
   required: ['konteks', 'deskripsi'],
 };
 
+const kktpItemSchema = {
+    type: Type.OBJECT,
+    properties: {
+        tujuan: { type: Type.STRING, description: 'Satu tujuan pembelajaran spesifik yang dapat diukur dan diamati.' },
+        kriteria: { type: Type.STRING, description: 'Deskripsi kriteria konkret, jelas, dan terukur yang menunjukkan ketercapaian tujuan pembelajaran ini.' },
+    },
+    required: ['tujuan', 'kriteria'],
+};
+
+
 const responseSchemaProperties = {
     A_identitasKonteks: { type: Type.ARRAY, items: rppSectionItemSchema, description: "Identitas dan Konteks RPP" },
-    B_capaianTujuanPembelajaran: { type: Type.ARRAY, items: rppSectionItemSchema, description: "Capaian dan Tujuan Pembelajaran" },
+    B_capaianTujuanPembelajaran: { type: Type.ARRAY, items: kktpItemSchema, description: "Rincian Tujuan Pembelajaran dan Kriteria Ketercapaiannya (KKTP), dipecah menjadi tujuan dan kriteria spesifik." },
     C_dimensiProfilLulusan: { type: Type.ARRAY, items: rppSectionItemSchema, description: "Keterkaitan dengan Dimensi Profil Lulusan" },
     D_lintasDisiplinTopik: { type: Type.ARRAY, items: rppSectionItemSchema, description: "Keterkaitan Lintas Disiplin Ilmu dengan Topik" },
     E_praktikPedagogisUtama: { type: Type.ARRAY, items: rppSectionItemSchema, description: "Praktik Pedagogis Utama yang Digunakan" },
@@ -45,8 +55,9 @@ const buildPrompt = (formData: RppFormData): string => {
           "deskripsi": "**Karakteristik Peserta Didik:**\\n1. Siswa memiliki gaya belajar visual.\\n2. Beberapa siswa memerlukan bimbingan tambahan."
         - **Contoh Format yang SALAH:**
           "deskripsi": "* Karakteristik Peserta Didik\\n- Siswa visual\\n- Bimbingan tambahan"
-    3.  **Kualitas & Bahasa:** Isi setiap bagian RPP dengan deskripsi yang konkret dan implementatif dalam Bahasa Indonesia yang baik dan benar.
-    4.  **Konteks SLB/ABK:** Jika tipe satuan pendidikan adalah "SLB/ABK", berikan perhatian khusus pada bagian diferensiasi, akomodasi, dan data spesifik ABK yang diberikan.
+    3.  **Instruksi Khusus untuk KKTP (Bagian B):** Untuk bagian \`B_capaianTujuanPembelajaran\`, pecah Capaian Pembelajaran yang diberikan menjadi beberapa 'tujuan' pembelajaran yang spesifik. Untuk setiap tujuan, buatlah 'kriteria' ketercapaian yang jelas dan terukur. Gunakan Nilai Minimal Ketercapaian (${formData.kktp || '75'}) sebagai acuan untuk kelulusan siswa dalam kesimpulan asesmen.
+    4.  **Kualitas & Bahasa:** Isi setiap bagian RPP dengan deskripsi yang konkret dan implementatif dalam Bahasa Indonesia yang baik dan benar.
+    5.  **Konteks SLB/ABK:** Jika tipe satuan pendidikan adalah "SLB/ABK", berikan perhatian khusus pada bagian diferensiasi, akomodasi, dan data spesifik ABK yang diberikan.
 
     Berikut adalah data untuk penyusunan RPP:
     
@@ -71,7 +82,7 @@ const buildPrompt = (formData: RppFormData): string => {
     
     **3. Konteks Pembelajaran:**
     - Capaian Pembelajaran (CP) Ringkas: ${formData.learningOutcomes}
-    - Kriteria Ketercapaian Tujuan Pembelajaran (KKTP): ${formData.kktp}
+    - Nilai Minimal Ketercapaian (KKM): ${formData.kktp || '75'}
     - Konteks & Sumber Daya (Lingkungan, Teknologi, dll): ${formData.learningContext}
     - Sarana dan Prasarana di Kelas: ${formData.facilities}
     
@@ -107,12 +118,11 @@ const buildPrompt = (formData: RppFormData): string => {
     return prompt;
 };
 
-// Restore passing apiKey as a parameter for flexibility
 export const generateRpp = async (formData: RppFormData, apiKey: string): Promise<GeneratedRpp> => {
     if (!apiKey) {
-        throw new Error("Kunci API tidak dikonfigurasi. Silakan atur di halaman Pengaturan.");
+      throw new Error("API Key tidak tersedia. Harap konfigurasikan di halaman Pengaturan.");
     }
-    const ai = new GoogleGenAI({ apiKey }); // Use the provided key
+    const ai = new GoogleGenAI({ apiKey });
 
     try {
         const prompt = buildPrompt(formData);

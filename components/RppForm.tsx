@@ -13,14 +13,14 @@ interface RppFormProps {
 
 const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div className="mb-6">
-    <h3 className="text-xl font-semibold text-gray-700 border-b-2 border-teal-400 pb-2 mb-4">{title}</h3>
+    <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 border-b-2 border-teal-400 pb-2 mb-4">{title}</h3>
     <div className="space-y-4">{children}</div>
   </div>
 );
 
 const FormField: React.FC<{ label: string; children: React.ReactNode; required?: boolean }> = ({ label, children, required=true }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-600 mb-1">
+    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     {children}
@@ -28,15 +28,15 @@ const FormField: React.FC<{ label: string; children: React.ReactNode; required?:
 );
 
 const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input {...props} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 transition" />
+    <input {...props} className={`p-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 transition bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white ${props.className}`} />
 );
 
 const Textarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-    <textarea {...props} rows={3} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 transition" />
+    <textarea {...props} rows={3} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 transition bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" />
 );
 
 const Select = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
-    <select {...props} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 transition" />
+    <select {...props} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 transition bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" />
 );
 
 
@@ -44,18 +44,18 @@ const RppForm: React.FC<RppFormProps> = ({ formData, onFormChange, onCheckboxCha
   const isSlb = formData.educationUnitType === 'SLB/ABK';
 
   return (
-    <form onSubmit={onSubmit} className="bg-white p-6 rounded-lg shadow-lg overflow-y-auto">
-      <h2 className="text-2xl font-bold text-teal-600 mb-6">Input Data RPP</h2>
+    <form onSubmit={onSubmit} className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg overflow-y-auto">
+      <h2 className="text-2xl font-bold text-teal-600 dark:text-teal-400 mb-6">Input Data RPP</h2>
       
       <FormSection title="Informasi Umum">
-        <FormField label="Nama Sekolah"><Input type="text" name="schoolName" value={formData.schoolName} onChange={onFormChange} placeholder="Contoh: SMP Negeri 1 Harapan Bangsa" /></FormField>
+        <FormField label="Nama Sekolah"><Input type="text" name="schoolName" value={formData.schoolName} onChange={onFormChange} placeholder="Contoh: SMP Negeri 1 Harapan Bangsa" className="w-full" /></FormField>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Nama Guru"><Input type="text" name="teacherName" value={formData.teacherName} onChange={onFormChange} placeholder="Contoh: Dr. Budi Santoso, M.Pd." /></FormField>
-            <FormField label="NIP" required={false}><Input type="text" name="nip" value={formData.nip} onChange={onFormChange} placeholder="Contoh: 198501012010011001" /></FormField>
+            <FormField label="Nama Guru"><Input type="text" name="teacherName" value={formData.teacherName} onChange={onFormChange} placeholder="Contoh: Dr. Budi Santoso, M.Pd." className="w-full" /></FormField>
+            <FormField label="NIP" required={false}><Input type="text" name="nip" value={formData.nip} onChange={onFormChange} placeholder="Contoh: 198501012010011001" className="w-full" /></FormField>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Kota"><Input type="text" name="city" value={formData.city} onChange={onFormChange} placeholder="Contoh: Jakarta" /></FormField>
-            <FormField label="Tahun Pelajaran"><Input type="text" name="academicYear" value={formData.academicYear} onChange={onFormChange} placeholder="Contoh: 2024/2025" /></FormField>
+            <FormField label="Kota"><Input type="text" name="city" value={formData.city} onChange={onFormChange} placeholder="Contoh: Jakarta" className="w-full"/></FormField>
+            <FormField label="Tahun Pelajaran"><Input type="text" name="academicYear" value={formData.academicYear} onChange={onFormChange} placeholder="Contoh: 2024/2025" className="w-full" /></FormField>
         </div>
       </FormSection>
 
@@ -67,17 +67,19 @@ const RppForm: React.FC<RppFormProps> = ({ formData, onFormChange, onCheckboxCha
           </Select>
         </FormField>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormField label="Kelas"><Input type="text" name="class" value={formData.class} onChange={onFormChange} placeholder="Contoh: 7" /></FormField>
-            <FormField label="Fase"><Input type="text" name="phase" value={formData.phase} onChange={onFormChange} placeholder="Contoh: D" /></FormField>
-            <FormField label="Semester"><Input type="text" name="semester" value={formData.semester} onChange={onFormChange} placeholder="Contoh: Ganjil" /></FormField>
+            <FormField label="Kelas"><Input type="text" name="class" value={formData.class} onChange={onFormChange} placeholder="Contoh: 7" className="w-full" /></FormField>
+            <FormField label="Fase"><Input type="text" name="phase" value={formData.phase} onChange={onFormChange} placeholder="Contoh: D" className="w-full" /></FormField>
+            <FormField label="Semester"><Input type="text" name="semester" value={formData.semester} onChange={onFormChange} placeholder="Contoh: Ganjil" className="w-full" /></FormField>
         </div>
-        <FormField label="Mata Pelajaran"><Input type="text" name="subject" value={formData.subject} onChange={onFormChange} placeholder="Contoh: Ilmu Pengetahuan Alam" /></FormField>
-        <FormField label="Topik/Tema"><Input type="text" name="topicTheme" value={formData.topicTheme} onChange={onFormChange} placeholder="Contoh: Ekosistem dan Keseimbangannya" /></FormField>
+        <FormField label="Mata Pelajaran"><Input type="text" name="subject" value={formData.subject} onChange={onFormChange} placeholder="Contoh: Ilmu Pengetahuan Alam" className="w-full" /></FormField>
+        <FormField label="Topik/Tema"><Input type="text" name="topicTheme" value={formData.topicTheme} onChange={onFormChange} placeholder="Contoh: Ekosistem dan Keseimbangannya" className="w-full" /></FormField>
         <FormField label="Capaian Pembelajaran (CP) Ringkas"><Textarea name="learningOutcomes" value={formData.learningOutcomes} onChange={onFormChange} placeholder="Contoh: Peserta didik dapat mendeskripsikan interaksi antar komponen biotik dan abiotik dalam suatu ekosistem." /></FormField>
-        <FormField label="Kriteria Ketercapaian Tujuan Pembelajaran (KKTP)"><Textarea name="kktp" value={formData.kktp} onChange={onFormChange} placeholder="Nilai Minimal 'Tercapai'. Contoh: Siswa dianggap mencapai tujuan jika mampu menjelaskan minimal 3 dari 5 interaksi antar komponen biotik dengan benar." /></FormField>
+        <FormField label="Nilai Minimal Ketercapaian (KKM)">
+          <Input type="number" name="kktp" value={formData.kktp} onChange={onFormChange} placeholder="Contoh: 75" min="0" max="100" className="w-full md:w-1/3" />
+        </FormField>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Alokasi Waktu"><Input type="text" name="timeAllocation" value={formData.timeAllocation} onChange={onFormChange} placeholder="Contoh: 4 Jam Pelajaran" /></FormField>
-            <FormField label="Jumlah Pertemuan"><Input type="text" name="meetings" value={formData.meetings} onChange={onFormChange} placeholder="Contoh: 2" /></FormField>
+            <FormField label="Alokasi Waktu"><Input type="text" name="timeAllocation" value={formData.timeAllocation} onChange={onFormChange} placeholder="Contoh: 4 Jam Pelajaran" className="w-full" /></FormField>
+            <FormField label="Jumlah Pertemuan"><Input type="text" name="meetings" value={formData.meetings} onChange={onFormChange} placeholder="Contoh: 2" className="w-full" /></FormField>
         </div>
         <FormField label="Konteks & Sumber Daya"><Textarea name="learningContext" value={formData.learningContext} onChange={onFormChange} placeholder="Contoh: Sekolah memiliki akses ke taman/sungai kecil. Sebagian besar siswa memiliki smartphone. LMS sekolah menggunakan Google Classroom." /></FormField>
         <FormField label="Sarana dan Prasarana"><Textarea name="facilities" value={formData.facilities} onChange={onFormChange} placeholder="Contoh: Papan tulis, Proyektor LCD, Laptop, Jaringan Internet, Laboratorium IPA, Buku paket, Lingkungan sekitar sekolah (taman)." /></FormField>
@@ -95,14 +97,14 @@ const RppForm: React.FC<RppFormProps> = ({ formData, onFormChange, onCheckboxCha
         <FormField label="Dimensi Profil Lulusan (pilih ≥ 2)">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
             {GRADUATE_PROFILE_DIMENSIONS.map(dim => (
-              <label key={dim} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-md border border-gray-200">
+              <label key={dim} className="flex items-center space-x-2 p-2 bg-gray-50 dark:bg-slate-700 rounded-md border border-gray-200 dark:border-slate-600">
                 <input
                   type="checkbox"
                   checked={formData.graduateProfileDimensions.includes(dim)}
                   onChange={() => onCheckboxChange(dim)}
                   className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                 />
-                <span className="text-sm">{dim}</span>
+                <span className="text-sm text-gray-800 dark:text-gray-200">{dim}</span>
               </label>
             ))}
           </div>
@@ -118,10 +120,10 @@ const RppForm: React.FC<RppFormProps> = ({ formData, onFormChange, onCheckboxCha
 
       {isSlb && (
         <FormSection title="4. Data Khusus SLB/ABK">
-          <FormField label="Kategori Kebutuhan" required={isSlb}><Input type="text" name="slbCategory" value={formData.slbCategory} onChange={onFormChange} placeholder="Contoh: Autisme Spektrum Ringan" /></FormField>
+          <FormField label="Kategori Kebutuhan" required={isSlb}><Input type="text" name="slbCategory" value={formData.slbCategory} onChange={onFormChange} placeholder="Contoh: Autisme Spektrum Ringan" className="w-full" /></FormField>
           <FormField label="IEP/Target Individual" required={isSlb}><Textarea name="iepTargets" value={formData.iepTargets} onChange={onFormChange} placeholder="Contoh: Meningkatkan interaksi sosial selama kerja kelompok" /></FormField>
           <FormField label="Profil Sensorik & Kesehatan" required={isSlb}><Textarea name="sensoryProfile" value={formData.sensoryProfile} onChange={onFormChange} placeholder="Contoh: Sensitif terhadap suara keras" /></FormField>
-          <FormField label="Mode Komunikasi" required={isSlb}><Input type="text" name="communicationMode" value={formData.communicationMode} onChange={onFormChange} placeholder="Contoh: Verbal dan menggunakan gambar" /></FormField>
+          <FormField label="Mode Komunikasi" required={isSlb}><Input type="text" name="communicationMode" value={formData.communicationMode} onChange={onFormChange} placeholder="Contoh: Verbal dan menggunakan gambar" className="w-full" /></FormField>
           <FormField label="Alat Bantu" required={isSlb}><Textarea name="assistiveTools" value={formData.assistiveTools} onChange={onFormChange} placeholder="Contoh: Headphone peredam bising, tablet untuk komunikasi" /></FormField>
           <FormField label="Peran Pendamping/Terapis/Orang Tua" required={isSlb}><Textarea name="assistantRole" value={formData.assistantRole} onChange={onFormChange} placeholder="Contoh: Membantu siswa fokus pada tugas" /></FormField>
         </FormSection>

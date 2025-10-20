@@ -25,6 +25,11 @@ export interface RppSectionItem {
   deskripsi: string;
 }
 
+export interface KktpItem {
+  tujuan: string;
+  kriteria: string;
+}
+
 export interface RppFormData {
   schoolName: string;
   teacherName: string;
@@ -60,7 +65,7 @@ export interface RppFormData {
 
 export interface GeneratedRpp {
   A_identitasKonteks: RppSectionItem[];
-  B_capaianTujuanPembelajaran: RppSectionItem[];
+  B_capaianTujuanPembelajaran: KktpItem[];
   C_dimensiProfilLulusan: RppSectionItem[];
   D_lintasDisiplinTopik: RppSectionItem[];
   E_praktikPedagogisUtama: RppSectionItem[];

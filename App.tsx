@@ -3,10 +3,12 @@ import RppForm from './components/RppForm';
 import RppDisplay from './components/RppDisplay';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
-import Settings from './components/Settings'; // Import Settings component
+import Settings from './components/Settings';
 import { generateRpp } from './services/geminiService';
 import type { RppFormData, GeneratedRpp, EducationUnitType, PedagogyModel, GraduateProfileDimension } from './types';
 import { PEDAGOGY_MODELS } from './constants';
+
+type View = 'rpp' | 'settings';
 
 const App: React.FC = () => {
   const [formData, setFormData] = useState<RppFormData>({
@@ -22,7 +24,7 @@ const App: React.FC = () => {
     subject: '',
     topicTheme: '',
     learningOutcomes: '',
-    kktp: '',
+    kktp: '75',
     facilities: '',
     studentCharacteristics: '',
     learningInterests: '',
@@ -45,22 +47,33 @@ const App: React.FC = () => {
   const [generatedRpp, setGeneratedRpp] = useState<GeneratedRpp | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<View>('rpp');
   
-  // Restore state for multi-view and API key management
-  const [activeView, setActiveView] = useState<'rpp' | 'settings'>('rpp');
+  const [apiKey, setApiKey] = useState<string>('');
   const [apiMode, setApiMode] = useState<'default' | 'custom'>('default');
-  const [customApiKey, setCustomApiKey] = useState<string>('');
 
-  // Load settings from localStorage on initial render
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+  });
+
+  // Effect for handling theme changes and persistence
   useEffect(() => {
-    const savedMode = localStorage.getItem('apiMode') as 'default' | 'custom' | null;
-    const savedKey = localStorage.getItem('customApiKey');
-    if (savedMode) {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+  
+  // Effect for loading API settings from localStorage
+  useEffect(() => {
+      const savedMode = localStorage.getItem('apiMode') as 'default' | 'custom' || 'default';
+      const savedKey = localStorage.getItem('apiKey') || '';
       setApiMode(savedMode);
-    }
-    if (savedKey) {
-      setCustomApiKey(savedKey);
-    }
+      setApiKey(savedKey);
+  }, []);
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
   }, []);
 
   const handleFormChange = useCallback((
@@ -79,76 +92,77 @@ const App: React.FC = () => {
     });
   }, []);
 
-  // Handle saving settings from the Settings page
   const handleSaveSettings = useCallback((mode: 'default' | 'custom', key: string) => {
-    setApiMode(mode);
-    setCustomApiKey(key);
-    localStorage.setItem('apiMode', mode);
-    localStorage.setItem('customApiKey', key);
+      setApiMode(mode);
+      setApiKey(key);
+      localStorage.setItem('apiMode', mode);
+      localStorage.setItem('apiKey', key);
   }, []);
 
-  // Update handleSubmit to use the selected API key
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Determine which API key to use
-    // @ts-ignore - VITE_API_KEY is injected by the build tool
-    const defaultApiKey = import.meta.env.VITE_API_KEY;
-    const apiKey = apiMode === 'custom' ? customApiKey : defaultApiKey;
-
-    if (!apiKey) {
-      setError("Kunci API tidak dikonfigurasi. Harap atur di halaman Pengaturan atau konfigurasikan variabel lingkungan VITE_API_KEY.");
-      return;
+    const keyToUse = apiMode === 'custom' ? apiKey : (process.env.API_KEY || '');
+    if (!keyToUse) {
+        setError('API Key tidak valid. Mohon periksa Pengaturan API Anda.');
+        setActiveView('settings');
+        return;
     }
-
+    
     setIsLoading(true);
     setError(null);
     setGeneratedRpp(null);
+    setActiveView('rpp');
 
     try {
-      // Pass the selected API key to the service
-      const result = await generateRpp(formData, apiKey);
+      const result = await generateRpp(formData, keyToUse);
       setGeneratedRpp(result);
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan yang tidak diketahui.');
     } finally {
       setIsLoading(false);
     }
-  }, [formData, apiMode, customApiKey]);
+  }, [formData, apiMode, apiKey]);
   
   const isSubmitDisabled = isLoading;
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans text-gray-800">
-      <Sidebar activeView={activeView} setActiveView={setActiveView} />
+    <div className="flex h-screen bg-gray-100 dark:bg-slate-900 font-sans text-gray-800 dark:text-gray-200">
+      <Sidebar 
+        activeView={activeView}
+        setActiveView={setActiveView}
+        theme={theme}
+        toggleTheme={handleToggleTheme} 
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
-        {activeView === 'rpp' ? (
-          <>
-            <Header />
-            <main className="flex-grow container mx-auto p-4 lg:p-8 grid grid-cols-1 lg:grid-cols-2 lg:gap-8 min-h-0">
-                <RppForm
-                    formData={formData}
-                    onFormChange={handleFormChange}
-                    onCheckboxChange={handleCheckboxChange}
-                    onSubmit={handleSubmit}
-                    isLoading={isSubmitDisabled}
-                />
-                <RppDisplay
-                    rpp={generatedRpp}
-                    isLoading={isLoading}
-                    error={error}
-                />
-            </main>
-            <footer className="text-center p-4 text-sm text-gray-500 flex-shrink-0">
-                <p>&copy; 2024 EL-RPP. Ditenagai oleh Google Gemini.</p>
-            </footer>
-          </>
+        {activeView === 'settings' ? (
+           <Settings 
+             currentMode={apiMode}
+             currentKey={apiKey}
+             onSave={handleSaveSettings}
+           />
         ) : (
-            <Settings 
-                currentMode={apiMode}
-                currentKey={customApiKey}
-                onSave={handleSaveSettings}
-            />
+            <>
+                <Header />
+                <main className="flex-grow container mx-auto p-4 lg:p-8 grid grid-cols-1 lg:grid-cols-2 lg:gap-8 min-h-0">
+                    <RppForm
+                        formData={formData}
+                        onFormChange={handleFormChange}
+                        onCheckboxChange={handleCheckboxChange}
+                        onSubmit={handleSubmit}
+                        isLoading={isSubmitDisabled}
+                    />
+                    <RppDisplay
+                        rpp={generatedRpp}
+                        isLoading={isLoading}
+                        error={error}
+                        kkm={formData.kktp}
+                    />
+                </main>
+                <footer className="text-center p-4 text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    <p>&copy; 2024 EL-RPP. Ditenagai oleh Google Gemini.</p>
+                </footer>
+            </>
         )}
       </div>
     </div>
