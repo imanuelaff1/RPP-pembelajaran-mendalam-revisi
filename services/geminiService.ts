@@ -1,13 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { RppFormData, GeneratedRpp } from '../types';
 
-/**
- * IMPORTANT: This constant is intended to be populated by a build process (e.g., Vite, Webpack)
- * that replaces `process.env.API_KEY` with an actual default API key string.
- * In a standard browser environment, `process.env.API_KEY` will be `undefined`.
- */
-export const DEFAULT_API_KEY = process.env.API_KEY;
-
 const rppSectionItemSchema = {
   type: Type.OBJECT,
   properties: {
