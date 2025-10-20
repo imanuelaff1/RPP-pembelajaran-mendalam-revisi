@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
       <div className="py-8 text-center">
         <h2 className="text-2xl font-bold tracking-wider">EL-RPP</h2>
       </div>
-      <nav className="flex flex-col space-y-2 flex-grow">
+      <nav className="flex flex-col space-y-2">
          <NavItem 
             icon={<RppIcon />} 
             label="RPP Generation" 
@@ -76,17 +76,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
             isActive={activeView === 'settings'} 
             onClick={() => setActiveView('settings')} 
         />
+        <button
+            onClick={toggleTheme}
+            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-left text-gray-300 hover:bg-slate-700 hover:text-white"
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+            <span className="font-medium">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+        </button>
       </nav>
-      <div className="mt-auto">
-          <button
-              onClick={toggleTheme}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-left text-gray-300 hover:bg-slate-700 hover:text-white"
-              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-          >
-              {theme === 'light' ? <MoonIcon /> : <SunIcon />}
-              <span className="font-medium">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
-          </button>
-      </div>
     </aside>
   );
 };

@@ -1,53 +1,34 @@
 import React from 'react';
-import type { GeneratedRpp, RppSectionItem, KktpItem } from '../types';
+import type { GeneratedRpp, RppSectionItem, KktpItem, RppFormData } from '../types';
 import Spinner from './Spinner';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import saveAs from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 interface RppDisplayProps {
   rpp: GeneratedRpp | null;
   isLoading: boolean;
   error: string | null;
-  kkm: string;
+  formData: RppFormData;
 }
 
 const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
-  const lines = content.split('\n').filter(line => line.trim() !== '');
-  const elements: React.ReactNode[] = [];
-  let currentListItems: string[] = [];
+  if (!content) return null;
+  // Use 'marked' for robust markdown parsing and 'dompurify' for security.
+  const rawHtml = marked.parse(content, { gfm: true, breaks: true });
+  const sanitizedHtml = DOMPurify.sanitize(rawHtml);
 
-  const flushList = () => {
-    if (currentListItems.length > 0) {
-      elements.push(
-        <ol key={`list-${elements.length}`} className="list-decimal pl-6 space-y-1 my-2">
-          {currentListItems.map((item, idx) => <li key={idx}>{item}</li>)}
-        </ol>
-      );
-      currentListItems = [];
-    }
-  };
-
-  lines.forEach((line) => {
-    const isBold = /^\*\*(.*)\*\*$/.test(line);
-    const cleanLine = line.replace(/\*\*/g, '');
-    const listItemMatch = cleanLine.match(/^\d+\.\s(.*)$/);
-
-    if (isBold) {
-      flushList();
-      elements.push(<p key={elements.length} className="font-semibold text-gray-800 dark:text-gray-200 mt-2 mb-1">{cleanLine}</p>);
-    } else if (listItemMatch) {
-      currentListItems.push(listItemMatch[1]);
-    } else {
-      flushList();
-      elements.push(<p key={elements.length}>{cleanLine}</p>);
-    }
-  });
-
-  flushList();
-
-  return <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">{elements}</div>;
+  // Refined prose-like styling with better spacing and contrast for list items and bold text.
+  // This ensures complex nested lists are rendered clearly and aesthetically.
+  return (
+    <div
+      className="text-gray-700 dark:text-gray-300 [&_p]:mb-2 last:[&_p]:mb-0 [&_strong]:font-semibold [&_strong]:text-gray-900 dark:[&_strong]:text-white [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol_ol]:list-[lower-alpha] [&_ol_ol_ol]:list-[lower-roman] [&_li]:mb-1.5 [&_li]:pl-1"
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+    />
+  );
 };
 
 const KktpDisplay: React.FC<{ items: KktpItem[]; kkm: string }> = ({ items, kkm }) => {
@@ -112,7 +93,7 @@ const RppSection: React.FC<{ title: string; items: RppSectionItem[] | string[] }
             </thead>
             <tbody>
                 {items.map((item, index) => (
-                    <tr key={index} className="bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700">
+                    <tr key={index} className="bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 align-top">
                         {typeof item === 'string' ? (
                             <td className="px-4 py-3 border border-gray-200 dark:border-slate-600" colSpan={isStringArray ? undefined : 2}>{item}</td>
                         ) : (
@@ -146,7 +127,7 @@ const SECTION_TITLES: Record<string, string> = {
     M_daftarRujukanInternal: 'M. Daftar Rujukan dan Sumber Belajar',
 };
 
-const RppDisplay: React.FC<RppDisplayProps> = ({ rpp, isLoading, error, kkm }) => {
+const RppDisplay: React.FC<RppDisplayProps> = ({ rpp, isLoading, error, formData }) => {
 
   const parseDescriptionToParagraphs = (desc: string): Paragraph[] => {
       if (!desc) return [new Paragraph("")];
@@ -173,19 +154,51 @@ const RppDisplay: React.FC<RppDisplayProps> = ({ rpp, isLoading, error, kkm }) =
 
   const handleDownloadDocx = () => {
       if (!rpp) return;
-      const sections: (Paragraph | Table)[] = [];
+      
+      const identityData = [
+          { label: 'Nama Sekolah', value: formData.schoolName },
+          { label: 'Nama Guru', value: formData.teacherName },
+          { label: 'NIP', value: formData.nip || '-' },
+          { label: 'Kota', value: formData.city },
+          { label: 'Mata Pelajaran', value: formData.subject },
+          { label: 'Kelas/Semester', value: `${formData.class} / ${formData.semester}` },
+          { label: 'Fase', value: formData.phase },
+          { label: 'Topik/Tema', value: formData.topicTheme },
+          { label: 'Tahun Pelajaran', value: formData.academicYear },
+          { label: 'Alokasi Waktu', value: formData.timeAllocation },
+      ];
 
-      sections.push(new Paragraph({ text: "Rencana Pelaksanaan Pembelajaran (RPP)", heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }));
+      const identityTable = new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          columnWidths: [3000, 6500],
+          rows: identityData.map(item => new TableRow({
+              children: [
+                  new TableCell({ 
+                      children: [new Paragraph({ children: [new TextRun({ text: item.label, bold: true })]})],
+                      borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                  }),
+                  new TableCell({ 
+                      children: [new Paragraph(`: ${item.value}`)],
+                      borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                  }),
+              ]
+          })),
+      });
+
+      const sections: (Paragraph | Table)[] = [
+        new Paragraph({ text: "RENCANA PELAKSANAAN PEMBELAJARAN (RPP)", heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
+        identityTable
+      ];
 
       Object.entries(rpp).forEach(([key, value]) => {
           if (!value || !Array.isArray(value) || value.length === 0) return;
           const title = SECTION_TITLES[key] || key;
-          sections.push(new Paragraph({ text: title, heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 150 } }));
+          sections.push(new Paragraph({ text: title, heading: HeadingLevel.HEADING_2, spacing: { before: 400, after: 150 } }));
 
           let table;
           if (key === 'B_capaianTujuanPembelajaran') {
               const kktpItems = value as KktpItem[];
-              const kkmValue = parseInt(kkm, 10);
+              const kkmValue = parseInt(formData.kktp, 10);
               const tercapaiMin = !isNaN(kkmValue) && kkmValue > 0 ? kkmValue : 75;
               const hampirTercapaiMax = tercapaiMin - 1;
               const hampirTercapaiMin = Math.max(0, tercapaiMin - 10);
@@ -264,87 +277,146 @@ const RppDisplay: React.FC<RppDisplayProps> = ({ rpp, isLoading, error, kkm }) =
       Packer.toBlob(doc).then(blob => saveAs(blob, "RPP_Generated.docx"));
   };
 
-  const handleDownloadPdf = () => {
-    if (!rpp) return;
-    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-    
-    doc.setFontSize(18);
-    doc.text("Rencana Pelaksanaan Pembelajaran (RPP)", 14, 22);
-    
-    let finalY = 30;
+    const handleDownloadPdf = () => {
+        if (!rpp) return;
+        const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        const margin = { top: 20, right: 15, bottom: 20, left: 15 };
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        let finalY = 0;
 
-    Object.entries(rpp).forEach(([key, value]) => {
-      if (!value || !Array.isArray(value) || value.length === 0) return;
+        const formatPdfText = (text: string): string => {
+            if (!text) return '';
+            return text.split('\n')
+                .map(line => {
+                    let processedLine = line.replace(/\*\*/g, ''); 
+                    if (processedLine.match(/^\s*\d+\.\s/)) { 
+                        processedLine = '  ' + processedLine.trim();
+                    }
+                    return processedLine;
+                })
+                .join('\n');
+        };
 
-      const title = SECTION_TITLES[key] || key;
-      const head: any[] = [];
-      const body: any[] = [];
-      let columnStyles = {};
-      
-      if (key === 'B_capaianTujuanPembelajaran') {
-        const kkmValue = parseInt(kkm, 10);
-        const tercapaiMin = !isNaN(kkmValue) && kkmValue > 0 ? kkmValue : 75;
-        const hampirTercapaiMax = tercapaiMin - 1;
-        const hampirTercapaiMin = Math.max(0, tercapaiMin - 10);
-        const belumTercapaiMax = hampirTercapaiMin - 1;
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text("RENCANA PELAKSANAAN PEMBELAJARAN (RPP)", pageWidth / 2, margin.top, { align: 'center' });
 
-        let skalaPenilaianText = `Tercapai: ${tercapaiMin}-100`;
-        if (hampirTercapaiMin <= hampirTercapaiMax) {
-          skalaPenilaianText += `\nHampir Tercapai: ${hampirTercapaiMin}-${hampirTercapaiMax}`;
-        }
-        if (belumTercapaiMax >= 0) {
-          skalaPenilaianText += `\nBelum Tercapai: 0-${belumTercapaiMax}`;
-        }
-          
-        head.push(['Tujuan Pembelajaran', 'Kriteria Ketercapaian', 'Skala Penilaian']);
-        (value as KktpItem[]).forEach(item => {
-           body.push([item.tujuan, item.kriteria, skalaPenilaianText]);
-        });
-        columnStyles = { 0: { cellWidth: 60 }, 1: { cellWidth: 70 }, 2: { cellWidth: 45 } };
-      } else if (typeof value[0] === 'string') {
-        head.push(['Deskripsi']);
-        (value as string[]).forEach(item => body.push([item]));
-      } else {
-        head.push(['Konteks', 'Deskripsi']);
-        (value as RppSectionItem[]).forEach(item => {
-          const deskripsiText = item.deskripsi.replace(/\*\*/g, '').replace(/(\d+\.)/g, '\n$1');
-          body.push([item.konteks, deskripsiText]);
-        });
-        columnStyles = { 0: { cellWidth: 50 }, 1: { cellWidth: 'auto' } };
-      }
+        const identityData = [
+            ['Nama Sekolah', ':', formData.schoolName],
+            ['Nama Guru', ':', formData.teacherName],
+            ['NIP', ':', formData.nip || '-'],
+            ['Kota', ':', formData.city],
+            ['Mata Pelajaran', ':', formData.subject],
+            ['Kelas/Semester', ':', `${formData.class} / ${formData.semester}`],
+            ['Fase', ':', formData.phase],
+            ['Topik/Tema', ':', formData.topicTheme],
+            ['Tahun Pelajaran', ':', formData.academicYear],
+            ['Alokasi Waktu', ':', formData.timeAllocation],
+        ];
 
-      autoTable(doc, {
-        startY: finalY,
-        head: [[{ content: title, styles: { fontStyle: 'bold', fontSize: 12, textColor: '#0d9488' } }]],
-        theme: 'plain',
-      });
-      finalY = (doc as any).lastAutoTable.finalY;
-
-      autoTable(doc, {
-        startY: finalY,
-        head: head,
-        body: body,
-        theme: 'grid',
-        headStyles: { fillColor: '#f1f5f9', textColor: '#1e293b', fontStyle: 'bold' },
-        styles: { cellPadding: 2, fontSize: 9, overflow: 'linebreak' },
-        columnStyles: columnStyles,
-      });
-      finalY = (doc as any).lastAutoTable.finalY + 5;
-
-      if (key === 'B_capaianTujuanPembelajaran') {
-        const kkmValue = parseInt(kkm, 10);
-        const tercapaiMin = !isNaN(kkmValue) && kkmValue > 0 ? kkmValue : 75;
         autoTable(doc, {
-            startY: finalY - 5,
-            body: [[{ content: `Kesimpulan Ketercapaian: Siswa dianggap tuntas jika mencapai skor minimal ${tercapaiMin}. Siswa yang belum mencapai kriteria akan mendapatkan program remedial atau menjadi peserta tutor sebaya.`, styles: { fillColor: '#f0fdfa', textColor: '#0f766e', fontSize: 8 } }]],
-            theme: 'plain'
+            startY: margin.top + 10,
+            body: identityData,
+            theme: 'plain',
+            styles: { fontSize: 10, cellPadding: 1, halign: 'left' },
+            columnStyles: {
+                0: { cellWidth: 40, fontStyle: 'bold' },
+                1: { cellWidth: 5 },
+                2: { cellWidth: 'auto' },
+            },
         });
-        finalY = (doc as any).lastAutoTable.finalY + 5;
-      }
-    });
 
-    doc.save('RPP_Generated.pdf');
-  };
+        finalY = (doc as any).lastAutoTable.finalY + 10;
+
+        Object.entries(rpp).forEach(([key, value]) => {
+            if (!value || !Array.isArray(value) || value.length === 0) return;
+            
+            const title = SECTION_TITLES[key] || key;
+            const titleHeight = 12; // Estimated space for title and margin
+            if (finalY + titleHeight > pageHeight - margin.bottom) {
+                doc.addPage();
+                finalY = margin.top;
+            }
+            
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text(title, margin.left, finalY);
+            const tableStartY = finalY + 4; 
+
+            const head: any[] = [];
+            const body: any[] = [];
+            let columnStyles: { [key: string]: any } = {};
+            
+            if (key === 'B_capaianTujuanPembelajaran') {
+                const kkmValue = parseInt(formData.kktp, 10);
+                const tercapaiMin = !isNaN(kkmValue) && kkmValue > 0 ? kkmValue : 75;
+                const hampirTercapaiMax = tercapaiMin - 1;
+                const hampirTercapaiMin = Math.max(0, tercapaiMin - 15);
+                const belumTercapaiMax = hampirTercapaiMin - 1;
+
+                let skalaPenilaianText = `• Tercapai: ${tercapaiMin}-100`;
+                if (hampirTercapaiMin <= hampirTercapaiMax) {
+                    skalaPenilaianText += `\n• Hampir Tercapai: ${hampirTercapaiMin}-${hampirTercapaiMax}`;
+                }
+                if (belumTercapaiMax >= 0) {
+                    skalaPenilaianText += `\n• Belum Tercapai: 0-${belumTercapaiMax}`;
+                }
+                
+                head.push(['Tujuan Pembelajaran', 'Kriteria Ketercapaian', 'Skala Penilaian']);
+                (value as KktpItem[]).forEach(item => {
+                    body.push([formatPdfText(item.tujuan), formatPdfText(item.kriteria), skalaPenilaianText]);
+                });
+                columnStyles = { 0: { cellWidth: 60 }, 1: { cellWidth: 'auto' }, 2: { cellWidth: 45 } };
+            } else if (typeof value[0] === 'string') {
+                head.push(['Deskripsi']);
+                (value as string[]).forEach(item => body.push([formatPdfText(item)]));
+                 columnStyles = { 0: { cellWidth: 'auto' } };
+            } else {
+                head.push(['Konteks', 'Deskripsi']);
+                (value as RppSectionItem[]).forEach(item => {
+                    body.push([item.konteks, formatPdfText(item.deskripsi)]);
+                });
+                columnStyles = { 0: { cellWidth: 50 }, 1: { cellWidth: 'auto' } };
+            }
+
+            autoTable(doc, {
+                startY: tableStartY,
+                head: head,
+                body: body,
+                theme: 'grid',
+                headStyles: { fillColor: '#e2e8f0', textColor: '#1e293b', fontStyle: 'bold', fontSize: 10 },
+                styles: { cellPadding: 2, fontSize: 10, overflow: 'linebreak', valign: 'top' },
+                columnStyles: columnStyles,
+                margin: { left: margin.left, right: margin.right },
+            });
+            finalY = (doc as any).lastAutoTable.finalY;
+
+            if (key === 'B_capaianTujuanPembelajaran') {
+                const conclusionHeight = 15;
+                 if (finalY + conclusionHeight > pageHeight - margin.bottom) {
+                    doc.addPage();
+                    finalY = margin.top;
+                }
+                const kkmValue = parseInt(formData.kktp, 10);
+                const tercapaiMin = !isNaN(kkmValue) && kkmValue > 0 ? kkmValue : 75;
+                const conclusionText = `Kesimpulan Ketercapaian: Siswa dianggap tuntas jika mencapai skor minimal ${tercapaiMin}. Siswa yang belum mencapai kriteria akan mendapatkan program remedial atau menjadi peserta tutor sebaya.`;
+                
+                autoTable(doc, {
+                    startY: finalY + 2,
+                    body: [[{ content: conclusionText, styles: { fillColor: '#f0fdfa', textColor: '#0f766e', fontSize: 9 } }]],
+                    theme: 'plain',
+                    margin: { left: margin.left, right: margin.right }
+                });
+                finalY = (doc as any).lastAutoTable.finalY;
+            }
+            
+            finalY += 10;
+        });
+
+        doc.save('RPP_Generated.pdf');
+    };
+
 
   const renderContent = () => {
     if (isLoading) {
@@ -381,7 +453,7 @@ const RppDisplay: React.FC<RppDisplayProps> = ({ rpp, isLoading, error, kkm }) =
           </div>
           {Object.entries(rpp).map(([key, value]) => {
             if (key === 'B_capaianTujuanPembelajaran') {
-                return <KktpDisplay key={key} items={value as KktpItem[]} kkm={kkm} />;
+                return <KktpDisplay key={key} items={value as KktpItem[]} kkm={formData.kktp} />;
             }
             return <RppSection key={key} title={SECTION_TITLES[key] || key} items={value as RppSectionItem[] | string[]} />
           })}

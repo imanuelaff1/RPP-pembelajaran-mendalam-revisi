@@ -156,7 +156,7 @@ const App: React.FC = () => {
                         rpp={generatedRpp}
                         isLoading={isLoading}
                         error={error}
-                        kkm={formData.kktp}
+                        formData={formData}
                     />
                 </main>
                 <footer className="text-center p-4 text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">

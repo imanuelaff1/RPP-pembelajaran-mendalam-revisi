@@ -55,9 +55,10 @@ const buildPrompt = (formData: RppFormData): string => {
           "deskripsi": "**Karakteristik Peserta Didik:**\\n1. Siswa memiliki gaya belajar visual.\\n2. Beberapa siswa memerlukan bimbingan tambahan."
         - **Contoh Format yang SALAH:**
           "deskripsi": "* Karakteristik Peserta Didik\\n- Siswa visual\\n- Bimbingan tambahan"
-    3.  **Instruksi Khusus untuk KKTP (Bagian B):** Untuk bagian \`B_capaianTujuanPembelajaran\`, pecah Capaian Pembelajaran yang diberikan menjadi beberapa 'tujuan' pembelajaran yang spesifik. Untuk setiap tujuan, buatlah 'kriteria' ketercapaian yang jelas dan terukur. Gunakan Nilai Minimal Ketercapaian (${formData.kktp || '75'}) sebagai acuan untuk kelulusan siswa dalam kesimpulan asesmen.
-    4.  **Kualitas & Bahasa:** Isi setiap bagian RPP dengan deskripsi yang konkret dan implementatif dalam Bahasa Indonesia yang baik dan benar.
-    5.  **Konteks SLB/ABK:** Jika tipe satuan pendidikan adalah "SLB/ABK", berikan perhatian khusus pada bagian diferensiasi, akomodasi, dan data spesifik ABK yang diberikan.
+    3.  **Instruksi Khusus untuk Bagian A (Identitas dan Konteks):** JANGAN mengulangi data institusional dan informasi umum RPP (seperti Nama Sekolah, Kelas, Mata Pelajaran) yang sudah disediakan dalam input. Fokuskan isi bagian ini HANYA pada analisis konteks yang relevan seperti karakteristik umum satuan pendidikan atau lingkungan belajar siswa.
+    4.  **Instruksi Khusus untuk KKTP (Bagian B):** Untuk bagian \`B_capaianTujuanPembelajaran\`, pecah Capaian Pembelajaran yang diberikan menjadi beberapa 'tujuan' pembelajaran yang spesifik. Untuk setiap tujuan, buatlah 'kriteria' ketercapaian yang jelas dan terukur. Gunakan Nilai Minimal Ketercapaian (${formData.kktp || '75'}) sebagai acuan untuk kelulusan siswa dalam kesimpulan asesmen.
+    5.  **Kualitas & Bahasa:** Isi setiap bagian RPP dengan deskripsi yang konkret dan implementatif dalam Bahasa Indonesia yang baik dan benar.
+    6.  **Konteks SLB/ABK:** Jika tipe satuan pendidikan adalah "SLB/ABK", berikan perhatian khusus pada bagian diferensiasi, akomodasi, dan data spesifik ABK yang diberikan.
 
     Berikut adalah data untuk penyusunan RPP:
     
