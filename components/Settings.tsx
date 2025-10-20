@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import Spinner from './Spinner';
+import type { ApiMode } from '../App';
 
 interface SettingsProps {
   currentKey: string;
-  onSave: (key: string) => void;
+  currentMode: ApiMode;
+  onSave: (mode: ApiMode, key: string) => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ currentKey, onSave }) => {
+const Settings: React.FC<SettingsProps> = ({ currentKey, currentMode, onSave }) => {
   const [key, setKey] = useState(currentKey);
+  const [mode, setMode] = useState<ApiMode>(currentMode);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
     setKey(currentKey);
-  }, [currentKey]);
+    setMode(currentMode);
+  }, [currentKey, currentMode]);
 
   const handleSave = () => {
     setIsSaving(true);
-    onSave(key);
+    onSave(mode, key);
     setTimeout(() => {
       setIsSaving(false);
       setSaveMessage('Pengaturan berhasil disimpan!');
@@ -25,7 +29,7 @@ const Settings: React.FC<SettingsProps> = ({ currentKey, onSave }) => {
     }, 500);
   };
   
-  const canSave = key.trim() !== '';
+  const canSave = mode === 'default' || (mode === 'custom' && key.trim() !== '');
 
   return (
     <div className="bg-gray-100 dark:bg-slate-900 h-full overflow-y-auto">
@@ -37,20 +41,53 @@ const Settings: React.FC<SettingsProps> = ({ currentKey, onSave }) => {
       <main className="container mx-auto p-4 lg:p-8">
         <div className="max-w-2xl mx-auto bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-1">Pengaturan API</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">Masukkan kunci API Google Gemini Anda untuk menggunakan aplikasi ini.</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">Pilih metode autentikasi API yang ingin Anda gunakan.</p>
           
-          <div className="space-y-4">
+          <div className="space-y-6">
+            <fieldset className="space-y-4">
+              <legend className="text-lg font-medium text-gray-800 dark:text-gray-200">Metode API Key</legend>
+              <div className="flex items-center">
+                <input
+                  id="default-key"
+                  name="api-mode"
+                  type="radio"
+                  checked={mode === 'default'}
+                  onChange={() => setMode('default')}
+                  className="h-4 w-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                />
+                <label htmlFor="default-key" className="ml-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Gunakan Kunci Bawaan (Default)
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Cocok untuk coba-coba. Mungkin memiliki batasan penggunaan bersama.</p>
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="custom-key"
+                  name="api-mode"
+                  type="radio"
+                  checked={mode === 'custom'}
+                  onChange={() => setMode('custom')}
+                  className="h-4 w-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                />
+                <label htmlFor="custom-key" className="ml-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Gunakan Kunci Pribadi (Direkomendasikan)
+                   <p className="text-xs text-gray-500 dark:text-gray-400">Performa lebih stabil dan terjamin. Masukkan kunci Anda di bawah ini.</p>
+                </label>
+              </div>
+            </fieldset>
+
             <div>
-              <label htmlFor="api-key" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Kunci API Gemini <span className="text-red-500">*</span>
+              <label htmlFor="api-key-input" className={`block text-sm font-medium mb-1 ${mode === 'custom' ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}>
+                Kunci API Gemini Pribadi {mode === 'custom' && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="password"
-                id="api-key"
+                id="api-key-input"
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
-                placeholder="Masukkan kunci API Anda di sini"
-                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 transition bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                placeholder={mode === 'custom' ? "Masukkan kunci API Anda di sini" : "Pilih mode Kunci Pribadi untuk mengaktifkan"}
+                disabled={mode !== 'custom'}
+                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 transition bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white disabled:bg-gray-100 disabled:cursor-not-allowed dark:disabled:bg-slate-800/50"
               />
             </div>
             
@@ -69,7 +106,7 @@ const Settings: React.FC<SettingsProps> = ({ currentKey, onSave }) => {
                 </div>
             </div>
             
-            <div className="flex items-center justify-between pt-4">
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-700">
                 <button
                     onClick={handleSave}
                     disabled={isSaving || !canSave}

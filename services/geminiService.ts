@@ -1,6 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { RppFormData, GeneratedRpp } from '../types';
 
+/**
+ * IMPORTANT: This constant is intended to be populated by a build process (e.g., Vite, Webpack)
+ * that replaces `process.env.API_KEY` with an actual default API key string.
+ * In a standard browser environment, `process.env.API_KEY` will be `undefined`.
+ */
+export const DEFAULT_API_KEY = process.env.API_KEY;
+
 const rppSectionItemSchema = {
   type: Type.OBJECT,
   properties: {
@@ -121,7 +128,8 @@ const buildPrompt = (formData: RppFormData): string => {
 
 export const generateRpp = async (formData: RppFormData, apiKey: string): Promise<GeneratedRpp> => {
     if (!apiKey) {
-      throw new Error("API Key belum diatur. Mohon konfigurasikan di halaman Pengaturan.");
+      // This is a safeguard; more specific errors are handled in App.tsx
+      throw new Error("API Key tidak diberikan.");
     }
     const ai = new GoogleGenAI({ apiKey });
 
@@ -144,7 +152,7 @@ export const generateRpp = async (formData: RppFormData, apiKey: string): Promis
     } catch (error: any) {
         console.error("Error generating RPP with Gemini:", error);
         if (error.message.includes('API key not valid')) {
-            throw new Error("API Key yang Anda masukkan tidak valid. Mohon periksa kembali di halaman Pengaturan.");
+            throw new Error("API Key yang Anda gunakan tidak valid. Mohon periksa kembali di halaman Pengaturan.");
         }
         if (error instanceof SyntaxError) {
              throw new Error("Gagal mem-parsing respons dari AI. Coba lagi.");

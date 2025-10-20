@@ -4,11 +4,12 @@ import RppDisplay from './components/RppDisplay';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Settings from './components/Settings';
-import { generateRpp } from './services/geminiService';
+import { generateRpp, DEFAULT_API_KEY } from './services/geminiService';
 import type { RppFormData, GeneratedRpp, EducationUnitType, PedagogyModel, GraduateProfileDimension } from './types';
 import { PEDAGOGY_MODELS } from './constants';
 
 type View = 'rpp' | 'settings';
+export type ApiMode = 'default' | 'custom';
 
 const App: React.FC = () => {
   const [formData, setFormData] = useState<RppFormData>({
@@ -50,6 +51,7 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('rpp');
   
   const [apiKey, setApiKey] = useState<string>('');
+  const [apiMode, setApiMode] = useState<ApiMode>('default');
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
@@ -63,10 +65,12 @@ const App: React.FC = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
   
-  // Effect for loading API key from localStorage
+  // Effect for loading API key and mode from localStorage
   useEffect(() => {
       const savedKey = localStorage.getItem('apiKey') || '';
+      const savedMode = (localStorage.getItem('apiMode') as ApiMode) || 'default';
       setApiKey(savedKey);
+      setApiMode(savedMode);
   }, []);
 
   const handleToggleTheme = useCallback(() => {
@@ -89,16 +93,23 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const handleSaveSettings = useCallback((key: string) => {
+  const handleSaveSettings = useCallback((mode: ApiMode, key: string) => {
+      setApiMode(mode);
       setApiKey(key);
+      localStorage.setItem('apiMode', mode);
       localStorage.setItem('apiKey', key);
   }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!apiKey) {
-        setError('API Key belum diatur. Mohon konfigurasikan di halaman Pengaturan.');
+    const keyToUse = apiMode === 'custom' ? apiKey : DEFAULT_API_KEY;
+
+    if (!keyToUse) {
+        const errorMessage = apiMode === 'custom'
+            ? 'API Key pribadi belum diatur. Mohon konfigurasikan di halaman Pengaturan.'
+            : 'API Key bawaan tidak tersedia. Mohon gunakan API Key pribadi Anda di halaman Pengaturan.';
+        setError(errorMessage);
         setActiveView('settings');
         return;
     }
@@ -109,14 +120,14 @@ const App: React.FC = () => {
     setActiveView('rpp');
 
     try {
-      const result = await generateRpp(formData, apiKey);
+      const result = await generateRpp(formData, keyToUse);
       setGeneratedRpp(result);
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan yang tidak diketahui.');
     } finally {
       setIsLoading(false);
     }
-  }, [formData, apiKey]);
+  }, [formData, apiKey, apiMode]);
   
   const isSubmitDisabled = isLoading;
 
@@ -132,6 +143,7 @@ const App: React.FC = () => {
         {activeView === 'settings' ? (
            <Settings 
              currentKey={apiKey}
+             currentMode={apiMode}
              onSave={handleSaveSettings}
            />
         ) : (
