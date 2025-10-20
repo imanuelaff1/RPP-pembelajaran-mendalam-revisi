@@ -9,6 +9,11 @@ import type { RppFormData, GeneratedRpp, EducationUnitType, PedagogyModel, Gradu
 import { PEDAGOGY_MODELS } from './constants';
 
 type View = 'rpp' | 'settings';
+type ApiMode = 'default' | 'custom';
+
+// The default API key is read from the build environment variables.
+// In Netlify, you should set an environment variable named 'API_KEY'.
+const DEFAULT_API_KEY = process.env.API_KEY;
 
 const App: React.FC = () => {
   const [formData, setFormData] = useState<RppFormData>({
@@ -50,12 +55,12 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('rpp');
   
   const [apiKey, setApiKey] = useState<string>('');
+  const [apiMode, setApiMode] = useState<ApiMode>('default');
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
   });
 
-  // Effect for handling theme changes and persistence
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
@@ -63,10 +68,11 @@ const App: React.FC = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
   
-  // Effect for loading API key from localStorage
   useEffect(() => {
       const savedKey = localStorage.getItem('apiKey') || '';
+      const savedMode = (localStorage.getItem('apiMode') as ApiMode) || (DEFAULT_API_KEY ? 'default' : 'custom');
       setApiKey(savedKey);
+      setApiMode(savedMode);
   }, []);
 
   const handleToggleTheme = useCallback(() => {
@@ -89,16 +95,22 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const handleSaveSettings = useCallback((key: string) => {
+  const handleSaveSettings = useCallback((mode: ApiMode, key: string) => {
+      setApiMode(mode);
       setApiKey(key);
+      localStorage.setItem('apiMode', mode);
       localStorage.setItem('apiKey', key);
   }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!apiKey) {
-        const errorMessage = 'API Key belum diatur. Mohon konfigurasikan di halaman Pengaturan.';
+    const keyToUse = apiMode === 'default' ? DEFAULT_API_KEY : apiKey;
+
+    if (!keyToUse) {
+        const errorMessage = apiMode === 'default'
+            ? 'Kunci API bawaan tidak tersedia. Administrator perlu mengkonfigurasi.'
+            : 'API Key pribadi belum diatur. Mohon konfigurasikan di halaman Pengaturan.';
         setError(errorMessage);
         setActiveView('settings');
         return;
@@ -110,14 +122,14 @@ const App: React.FC = () => {
     setActiveView('rpp');
 
     try {
-      const result = await generateRpp(formData, apiKey);
+      const result = await generateRpp(formData, keyToUse);
       setGeneratedRpp(result);
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan yang tidak diketahui.');
     } finally {
       setIsLoading(false);
     }
-  }, [formData, apiKey]);
+  }, [formData, apiKey, apiMode]);
   
   const isSubmitDisabled = isLoading;
 
@@ -133,7 +145,9 @@ const App: React.FC = () => {
         {activeView === 'settings' ? (
            <Settings 
              currentKey={apiKey}
+             currentApiMode={apiMode}
              onSave={handleSaveSettings}
+             defaultKeyAvailable={!!DEFAULT_API_KEY}
            />
         ) : (
             <>
@@ -154,7 +168,7 @@ const App: React.FC = () => {
                     />
                 </main>
                 <footer className="text-center p-4 text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
-                    <p>&copy; 2024 EL-RPP. Ditenagai oleh Google Gemini.</p>
+                    <p>&copy; 2025 EL-RPP Oleh Imanuelfl dan ditenagai oleh Google Gemini.</p>
                 </footer>
             </>
         )}
